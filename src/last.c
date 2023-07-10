@@ -145,23 +145,19 @@ void last_game_release(last_game *game)
     int i;
     if (game->path)
     {
-        free(game->path);
-        free_count++;
+        tracked_free(game->path);
     }
     if (game->title)
     {
-        free(game->title);
-        free_count++;
+        tracked_free(game->title);
     }
     if (game->theme)
     {
-        free(game->theme);
-        free_count++;
+        tracked_free(game->theme);
     }
     if (game->theme_variant)
     {
-        free(game->theme_variant);
-        free_count++;
+        tracked_free(game->theme_variant);
     }
     if (game->split_titles)
     {
@@ -169,32 +165,26 @@ void last_game_release(last_game *game)
         {
             if (game->split_titles[i])
             {
-                free(game->split_titles[i]);
-                free_count++;
+                tracked_free(game->split_titles[i]);
             }
         }
-        free(game->split_titles);
-        free_count++;
+        tracked_free(game->split_titles);
     }
     if (game->split_times)
     {
-        free(game->split_times);
-        free_count++;
+        tracked_free(game->split_times);
     }
     if (game->segment_times)
     {
-        free(game->segment_times);
-        free_count++;
+        tracked_free(game->segment_times);
     }
     if (game->best_splits)
     {
-        free(game->best_splits);
-        free_count++;
+        tracked_free(game->best_splits);
     }
     if (game->best_segments)
     {
-        free(game->best_segments);
-        free_count++;
+        tracked_free(game->best_segments);
     }
 }
 
@@ -518,31 +508,31 @@ void last_timer_release(last_timer *timer)
 {
     if (timer->split_times)
     {
-        free(timer->split_times);
+        tracked_free(timer->split_times);
     }
     if (timer->split_deltas)
     {
-        free(timer->split_deltas);
+        tracked_free(timer->split_deltas);
     }
     if (timer->segment_times)
     {
-        free(timer->segment_times);
+        tracked_free(timer->segment_times);
     }
     if (timer->segment_deltas)
     {
-        free(timer->segment_deltas);
+        tracked_free(timer->segment_deltas);
     }
     if (timer->split_info)
     {
-        free(timer->split_info);
+        tracked_free(timer->split_info);
     }
     if (timer->best_splits)
     {
-        free(timer->best_splits);
+        tracked_free(timer->best_splits);
     }
     if (timer->best_segments)
     {
-        free(timer->best_segments);
+        tracked_free(timer->best_segments);
     }
 }
 

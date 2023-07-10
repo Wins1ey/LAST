@@ -16,8 +16,7 @@ LASTComponent *last_component_pb_new()
     LASTPb *self;
     GtkWidget *label;
 
-    self = malloc(sizeof(LASTPb));
-    alloc_count++;
+    self = tracked_malloc(sizeof(LASTPb));
     if (!self)
     {
         return NULL;
@@ -46,8 +45,7 @@ LASTComponent *last_component_pb_new()
 
 static void pb_delete(LASTComponent *self)
 {
-    free(self);
-    free_count++;
+    tracked_free(self);
 }
 
 static GtkWidget *pb_widget(LASTComponent *self)

@@ -967,8 +967,7 @@ static void reload_activated(GSimpleAction *action,
     {
         path = strdup(win->game->path);
         last_app_window_open(win, path);
-        free(path);
-        free_count++;
+        tracked_free(path);
     }
 }
 
@@ -1016,6 +1015,10 @@ static void quit_activated(GSimpleAction *action,
     muntrace();
 
     int num_leaks = alloc_count - free_count;
+
+    if(num_leaks < 0)
+        num_leaks = 0;
+
     fprintf(logFile, "Number of memory leaks: %d\n", num_leaks);
     fclose(logFile);
 

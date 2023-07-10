@@ -16,8 +16,7 @@ LASTComponent *last_component_best_sum_new()
     LASTBestSum *self;
     GtkWidget *label;
 
-    self = malloc(sizeof(LASTBestSum));
-    alloc_count++;
+    self = tracked_malloc(sizeof(LASTBestSum));
     if (!self)
     {
         return NULL;
@@ -46,8 +45,7 @@ LASTComponent *last_component_best_sum_new()
 
 static void best_sum_delete(LASTComponent *self)
 {
-    free(self);
-    free_count++;
+    tracked_free(self);
 }
 
 static GtkWidget *best_sum_widget(LASTComponent *self)

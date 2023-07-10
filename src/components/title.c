@@ -14,8 +14,7 @@ LASTComponent *last_component_title_new()
 {
     LASTTitle *self;
 
-    self = malloc(sizeof(LASTTitle));
-    alloc_count++;
+    self = tracked_malloc(sizeof(LASTTitle));
     if (!self)
     {
         return NULL;
@@ -45,8 +44,7 @@ LASTComponent *last_component_title_new()
 
 static void title_delete(LASTComponent *self)
 {
-    free(self);
-    free_count++;
+    tracked_free(self);
 }
 
 static GtkWidget *title_widget(LASTComponent *self)

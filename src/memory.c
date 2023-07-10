@@ -57,8 +57,7 @@ READ_MEMORY_FUNCTION(uint64_t)
 
 char* read_memory_string(uint64_t mem_address, int buffer_size)
 {
-    char* buffer = (char*)malloc(buffer_size);
-    alloc_count++;
+    char* buffer = (char*)tracked_malloc(buffer_size);
     if (buffer == NULL)
     {
         // Handle memory allocation failure
@@ -183,7 +182,7 @@ int read_address(lua_State* L)
         int buffer_size = atoi(value_type + 6);
         char* value = read_memory_string(address, buffer_size);
         lua_pushstring(L, value != NULL ? value : "");
-        free(value);
+        tracked_free(value);
         return 1;
     }
     else

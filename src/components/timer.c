@@ -15,8 +15,7 @@ LASTComponent *last_component_timer_new()
     LASTTimer *self;
     GtkWidget *spacer;
 
-    self = malloc(sizeof(LASTTimer));
-    alloc_count++;
+    self = tracked_malloc(sizeof(LASTTimer));
     if (!self)
     {
         return NULL;
@@ -57,8 +56,7 @@ LASTComponent *last_component_timer_new()
 // Avoid collision with timer_delete of time.h
 static void last_timer_delete(LASTComponent *self)
 {
-    free(self);
-    free_count++;
+    tracked_free(self);
 }
 
 static GtkWidget *timer_widget(LASTComponent *self)

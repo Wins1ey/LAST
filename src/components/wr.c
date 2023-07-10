@@ -16,8 +16,7 @@ LASTComponent *last_component_wr_new()
 {
     LASTWr *self;
 
-    self = malloc(sizeof(LASTWr));
-    alloc_count++;
+    self = tracked_malloc(sizeof(LASTWr));
     if (!self)
     {
         return NULL;
@@ -43,8 +42,7 @@ LASTComponent *last_component_wr_new()
 
 static void wr_delete(LASTComponent *self)
 {
-    free(self);
-    free_count++;
+    tracked_free(self);
 }
 
 static GtkWidget *wr_widget(LASTComponent *self)
