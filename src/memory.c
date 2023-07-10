@@ -9,6 +9,7 @@
 
 #include "headers/memory.h"
 #include "headers/process.h"
+#include "headers/memcheck.h"
 
 bool memory_error;
 extern last_process process;
@@ -57,6 +58,7 @@ READ_MEMORY_FUNCTION(uint64_t)
 char* read_memory_string(uint64_t mem_address, int buffer_size)
 {
     char* buffer = (char*)malloc(buffer_size);
+    alloc_count++;
     if (buffer == NULL)
     {
         // Handle memory allocation failure

@@ -1,4 +1,5 @@
 #include "last-component.h"
+#include "../headers/memcheck.h"
 
 typedef struct _LASTTimer
 {
@@ -15,6 +16,7 @@ LASTComponent *last_component_timer_new()
     GtkWidget *spacer;
 
     self = malloc(sizeof(LASTTimer));
+    alloc_count++;
     if (!self)
     {
         return NULL;
@@ -56,6 +58,7 @@ LASTComponent *last_component_timer_new()
 static void last_timer_delete(LASTComponent *self)
 {
     free(self);
+    free_count++;
 }
 
 static GtkWidget *timer_widget(LASTComponent *self)

@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
+#include <mcheck.h>
+#include <stdio.h>
 
 #include <gtk/gtk.h>
 
@@ -14,6 +16,7 @@
 #include "components/last-component.h"
 #include "headers/auto-splitter.h"
 #include "headers/settings.h"
+#include "headers/memcheck.h"
 
 #define LAST_APP_TYPE (last_app_get_type ())
 #define LAST_APP(obj)                            \
@@ -965,6 +968,7 @@ static void reload_activated(GSimpleAction *action,
         path = strdup(win->game->path);
         last_app_window_open(win, path);
         free(path);
+        free_count++;
     }
 }
 
@@ -1009,6 +1013,12 @@ static void quit_activated(GSimpleAction *action,
                            GVariant      *parameter,
                            gpointer       app)
 {
+    muntrace();
+
+    int num_leaks = alloc_count - free_count;
+    fprintf(logFile, "Number of memory leaks: %d\n", num_leaks);
+    fclose(logFile);
+
     exit(0);
 }
 
@@ -1158,7 +1168,16 @@ void* run_application(void* args) {
     return NULL;
 }
 
+void lastLog()
+{
+    char* username = getlogin();
+    sprintf(logFilepath, "/home/%s/.last/last.log", username);
+    logFile = fopen(logFilepath, "w");
+}
+
 int main(int argc, char *argv[]) {
+    mtrace();
+    lastLog();
     check_directories();
 
     pthread_t t1, t2;

@@ -1,4 +1,5 @@
 #include "last-component.h"
+#include "../headers/memcheck.h"
 
 typedef struct _LASTSplits
 {
@@ -22,6 +23,7 @@ LASTComponent *last_component_splits_new()
     LASTSplits *self;
 
     self = malloc(sizeof(LASTSplits));
+    alloc_count++;
     if (!self)
     {
         return NULL;
@@ -62,6 +64,7 @@ LASTComponent *last_component_splits_new()
 static void splits_delete(LASTComponent *self)
 {
     free(self);
+    free_count++;
 }
 
 static GtkWidget *splits_widget(LASTComponent *self)
@@ -199,9 +202,13 @@ static void splits_clear_game(LASTComponent *self_)
     }
     gtk_adjustment_set_value(self->split_adjust, 0);
     free(self->split_rows);
+    free_count++;
     free(self->split_titles);
+    free_count++;
     free(self->split_deltas);
+    free_count++;
     free(self->split_times);
+    free_count++;
     self->split_count = 0;
 }
 

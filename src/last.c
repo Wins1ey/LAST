@@ -4,6 +4,7 @@
 #include <time.h>
 #include <jansson.h>
 #include "headers/last.h"
+#include "headers/memcheck.h"
 
 long long last_time_now(void)
 {
@@ -145,18 +146,22 @@ void last_game_release(last_game *game)
     if (game->path)
     {
         free(game->path);
+        free_count++;
     }
     if (game->title)
     {
         free(game->title);
+        free_count++;
     }
     if (game->theme)
     {
         free(game->theme);
+        free_count++;
     }
     if (game->theme_variant)
     {
         free(game->theme_variant);
+        free_count++;
     }
     if (game->split_titles)
     {
@@ -165,25 +170,31 @@ void last_game_release(last_game *game)
             if (game->split_titles[i])
             {
                 free(game->split_titles[i]);
+                free_count++;
             }
         }
         free(game->split_titles);
+        free_count++;
     }
     if (game->split_times)
     {
         free(game->split_times);
+        free_count++;
     }
     if (game->segment_times)
     {
         free(game->segment_times);
+        free_count++;
     }
     if (game->best_splits)
     {
         free(game->best_splits);
+        free_count++;
     }
     if (game->best_segments)
     {
         free(game->best_segments);
+        free_count++;
     }
 }
 

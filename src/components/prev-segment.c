@@ -1,4 +1,5 @@
 #include "last-component.h"
+#include "../headers/memcheck.h"
 
 typedef struct _LASTPrevSegment
 {
@@ -17,6 +18,7 @@ LASTComponent *last_component_prev_segment_new()
     LASTPrevSegment *self;
 
     self = malloc(sizeof(LASTPrevSegment));
+    alloc_count++;
     if (!self)
     {
         return NULL;
@@ -48,6 +50,7 @@ LASTComponent *last_component_prev_segment_new()
 static void prev_segment_delete(LASTComponent *self)
 {
     free(self);
+    free_count++;
 }
 
 static GtkWidget *prev_segment_widget(LASTComponent *self)

@@ -1,4 +1,5 @@
 #include "last-component.h"
+#include "../headers/memcheck.h"
 
 typedef struct _LASTTitle
 {
@@ -14,6 +15,7 @@ LASTComponent *last_component_title_new()
     LASTTitle *self;
 
     self = malloc(sizeof(LASTTitle));
+    alloc_count++;
     if (!self)
     {
         return NULL;
@@ -44,6 +46,7 @@ LASTComponent *last_component_title_new()
 static void title_delete(LASTComponent *self)
 {
     free(self);
+    free_count++;
 }
 
 static GtkWidget *title_widget(LASTComponent *self)

@@ -1,4 +1,5 @@
 #include "last-component.h"
+#include "../headers/memcheck.h"
 
 typedef struct _LASTBestSum
 {
@@ -16,6 +17,7 @@ LASTComponent *last_component_best_sum_new()
     GtkWidget *label;
 
     self = malloc(sizeof(LASTBestSum));
+    alloc_count++;
     if (!self)
     {
         return NULL;
@@ -45,6 +47,7 @@ LASTComponent *last_component_best_sum_new()
 static void best_sum_delete(LASTComponent *self)
 {
     free(self);
+    free_count++;
 }
 
 static GtkWidget *best_sum_widget(LASTComponent *self)

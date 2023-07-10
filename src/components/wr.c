@@ -1,4 +1,5 @@
 #include "last-component.h"
+#include "../headers/memcheck.h"
 
 typedef struct _LASTWr
 {
@@ -16,6 +17,7 @@ LASTComponent *last_component_wr_new()
     LASTWr *self;
 
     self = malloc(sizeof(LASTWr));
+    alloc_count++;
     if (!self)
     {
         return NULL;
@@ -42,6 +44,7 @@ LASTComponent *last_component_wr_new()
 static void wr_delete(LASTComponent *self)
 {
     free(self);
+    free_count++;
 }
 
 static GtkWidget *wr_widget(LASTComponent *self)

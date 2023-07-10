@@ -1,4 +1,5 @@
 #include "last-component.h"
+#include "../headers/memcheck.h"
 
 typedef struct _LASTPb
 {
@@ -16,6 +17,7 @@ LASTComponent *last_component_pb_new()
     GtkWidget *label;
 
     self = malloc(sizeof(LASTPb));
+    alloc_count++;
     if (!self)
     {
         return NULL;
@@ -45,6 +47,7 @@ LASTComponent *last_component_pb_new()
 static void pb_delete(LASTComponent *self)
 {
     free(self);
+    free_count++;
 }
 
 static GtkWidget *pb_widget(LASTComponent *self)
