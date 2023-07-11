@@ -1,0 +1,5 @@
+xxd --include last-gtk.css > ./src/headers/last-gtk.h || (rm ./src/headers/last-gtk.h; false)
+gcc -I/usr/include/lua5.* `pkg-config --cflags gtk+-3.0 x11 jansson` -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter -c -o bin/objects/last.o src/last.c
+gcc -I/usr/include/lua5.* `pkg-config --cflags gtk+-3.0 x11 jansson` -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter -c -o bin/objects/last-gtk.o src/last-gtk.c
+gcc -I/usr/include/lua5.* `pkg-config --cflags gtk+-3.0 x11 jansson` -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter -c -o bin/objects/memcheck.o src/memcheck.c
+gcc -I/usr/include/lua5.* `pkg-config --cflags gtk+-3.0 x11 jansson` -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter -c -o bin/objects/memory.o src/memory.c

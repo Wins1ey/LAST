@@ -1016,9 +1016,6 @@ static void quit_activated(GSimpleAction *action,
 
     int num_leaks = alloc_count - free_count;
 
-    if(num_leaks < 0)
-        num_leaks = 0;
-
     fprintf(logFile, "Number of memory leaks: %d\n", num_leaks);
     fclose(logFile);
 
