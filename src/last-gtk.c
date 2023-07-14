@@ -40,6 +40,11 @@ typedef struct
     GdkModifierType mods;
 } Keybind;
 
+typedef struct {
+    gchar* label_text;
+    gchar* entry_text;
+} LabelEntryPair;
+
 struct _LASTAppWindow
 {
     GtkApplicationWindow parent;
@@ -1032,6 +1037,69 @@ static void close_settings(GtkWidget *widget, gpointer data)
     gtk_widget_destroy(GTK_WIDGET(data));
 }
 
+static void find_labels(GtkWidget *widget, gpointer data)
+{
+    GList **label_list = (GList **)data;
+
+    if (GTK_IS_LABEL(widget)) {
+        LabelEntryPair *label_entry_pair = g_new(LabelEntryPair, 1);
+        label_entry_pair->label_text = g_strdup(gtk_label_get_text(GTK_LABEL(widget)));
+
+        *label_list = g_list_append(*label_list, label_entry_pair);
+    }
+}
+
+static void find_entries(GtkWidget *widget, gpointer data)
+{
+    GList **entry_list = (GList **)data;
+
+    if (GTK_IS_ENTRY(widget)) {
+        LabelEntryPair *label_entry_pair = g_new(LabelEntryPair, 1);
+        label_entry_pair->entry_text = g_strdup(gtk_entry_get_text(GTK_ENTRY(widget)));
+
+        *entry_list = g_list_append(*entry_list, label_entry_pair);
+    }
+}
+
+static void save_settings(GtkWidget *widget, gpointer data)
+{
+    GtkWidget *grid = GTK_WIDGET(data);
+
+    GList *label_list = NULL;
+    GList *entry_list = NULL;
+
+    // Find all the labels within the grid
+    gtk_container_forall(GTK_CONTAINER(grid), find_labels, &label_list);
+
+    // Find all the entries within the grid
+    gtk_container_forall(GTK_CONTAINER(grid), find_entries, &entry_list);
+
+    // Print the label and entry text pairs
+    GList *label_pair = label_list;
+    GList *entry_pair = entry_list;
+    while (label_pair != NULL && entry_pair != NULL) {
+        LabelEntryPair *label_entry_pair = label_pair->data;
+
+        // Remove ": " from the label text
+        gchar *trimmed_label_text = g_strndup(label_entry_pair->label_text, strlen(label_entry_pair->label_text) - 2);
+        int entry_integer = atoi(((LabelEntryPair *)entry_pair->data)->entry_text);
+
+        last_update_setting(basename(auto_splitter_file), trimmed_label_text, json_integer(entry_integer), NULL);
+        printf("%s: %d\n", trimmed_label_text, entry_integer);
+
+        g_free(trimmed_label_text);
+
+        label_pair = g_list_next(label_pair);
+        entry_pair = g_list_next(entry_pair);
+    }
+
+    // Free the memory used by the label list and its elements
+    g_list_free_full(label_list, (GDestroyNotify)g_free);
+
+    // Free the memory used by the entry list and its elements
+    g_list_free_full(entry_list, (GDestroyNotify)g_free);
+}
+
 static void open_settings(GtkWidget *widget, gpointer data)
 {
     GtkWidget *settings_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -1078,6 +1146,7 @@ static void open_settings(GtkWidget *widget, gpointer data)
     gtk_container_add(GTK_CONTAINER(button_box), close_button);
 
     GtkWidget *save_button = gtk_button_new_with_label("Save");
+    g_signal_connect(save_button, "clicked", G_CALLBACK(save_settings), grid);
     gtk_container_add(GTK_CONTAINER(button_box), save_button);
 
     gtk_widget_show_all(settings_window);
