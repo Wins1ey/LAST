@@ -6,6 +6,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <libgen.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -14,6 +15,7 @@
 #include "memory.h"
 #include "auto-splitter.h"
 #include "process.h"
+#include "settings.h"
 
 #define MAX_PATH_LENGTH 256
 
@@ -27,6 +29,12 @@ atomic_bool call_reset = false;
 bool prev_is_loading;
 
 extern last_process process;
+
+typedef struct {
+    const char* name;
+    int value;
+    const char* description;
+} Setting;
 
 void check_directories()
 {
@@ -133,6 +141,104 @@ void reset(lua_State* L)
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
+void check_and_store_settings(lua_State* L, Setting** settings, int* num_settings)
+{
+    lua_getglobal(L, "settings");
+
+    if (lua_istable(L, -1))
+    {
+        // Iterate through the settings table
+        lua_pushnil(L);  // Push nil to start the iteration
+
+        int index = 0;
+        while (lua_next(L, -2) != 0)
+        {
+            // At this point, the key is at index -2 and the value is at index -1
+
+            // Check if the key is a string
+            if (lua_isstring(L, -2))
+            {
+                // Get the name of the setting
+                const char* setting_name = lua_tostring(L, -2);
+
+                // Check if the value is a table
+                if (lua_istable(L, -1))
+                {
+                    // Initialize variables to store the value and description
+                    int setting_value = 0;
+                    const char* setting_description = NULL;
+
+                    // Access the "value" field of the setting
+                    lua_getfield(L, -1, "value");
+
+                    // Check the type of the value
+                    if (lua_isnumber(L, -1))
+                    {
+                        // Get the value as an integer
+                        setting_value = lua_tointeger(L, -1);
+                    }
+                    else if (lua_isboolean(L, -1))
+                    {
+                        // Get the value as a boolean
+                        setting_value = lua_toboolean(L, -1);
+                    }
+
+                    // Pop the "value" field
+                    lua_pop(L, 1);
+
+                    // Access the "description" field of the setting
+                    lua_getfield(L, -1, "description");
+
+                    // Check the type of the description
+                    if (lua_isstring(L, -1))
+                    {
+                        // Get the description as a string
+                        setting_description = lua_tostring(L, -1);
+                    }
+
+                    // Pop the "description" field
+                    lua_pop(L, 1);
+
+                    // Resize the settings array
+                    *settings = realloc(*settings, (index + 1) * sizeof(Setting));
+                    if (*settings == NULL) {
+                        // Error handling for memory allocation failure
+                        // Free previously allocated memory and exit if needed
+                    }
+
+                    // Store the setting in the array
+                    (*settings)[index].name = setting_name;
+                    (*settings)[index].value = setting_value;
+                    (*settings)[index].description = setting_description;
+
+                    // Increment the index
+                    index++;
+                }
+            }
+
+            // Pop the value, but keep the key for the next iteration
+            lua_pop(L, 1);
+        }
+
+        // Update the number of settings
+        *num_settings = index;
+    }
+
+    // Pop the stack for "settings" table
+    lua_pop(L, 1);
+}
+
+void update_settings(const Setting* settings, int num_settings)
+{
+    for (int i = 0; i < num_settings; i++)
+    {
+        if (get_setting_value(basename(auto_splitter_file), settings[i].name) == NULL)
+        {
+            last_update_setting(basename(auto_splitter_file), settings[i].name, json_integer(settings[i].value), json_string(settings[i].description));
+        }
+    }
+}
+
 void run_auto_splitter()
 {
     lua_State* L = luaL_newstate();
@@ -166,6 +272,18 @@ void run_auto_splitter()
         lua_close(L);
         return;
     }
+
+    Setting* settings = NULL;
+    int num_settings = 0;
+
+    // Check and store the settings
+    check_and_store_settings(L, &settings, &num_settings);
+
+    // Print the settings
+    update_settings(settings, num_settings);
+
+    // Free the dynamically allocated memory
+    free(settings);
 
     lua_getglobal(L, "state");
     bool state_exists = lua_isfunction(L, -1);

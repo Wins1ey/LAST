@@ -849,7 +849,7 @@ static void open_activated(GSimpleAction *action,
         GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
         filename = gtk_file_chooser_get_filename(chooser);
         last_app_window_open(win, filename);
-        last_update_setting("split_file", json_string(filename));
+        last_update_setting("LAST", "split_file", json_string(filename), NULL);
         g_free(filename);
     }
     gtk_widget_destroy(dialog);
@@ -901,7 +901,7 @@ static void open_auto_splitter(GSimpleAction *action,
         GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
         filename = gtk_file_chooser_get_filename(chooser);
         strcpy(auto_splitter_file, filename);
-        last_update_setting("auto_splitter_file", json_string(filename));
+        last_update_setting("LAST", "auto_splitter_file", json_string(filename), NULL);
         g_free(filename);
     }
     gtk_widget_destroy(dialog);
@@ -1017,12 +1017,12 @@ static void toggle_auto_splitter(GtkCheckMenuItem *menu_item, gpointer user_data
     if (active)
     {
         atomic_store(&auto_splitter_enabled, 1);
-        last_update_setting("auto_splitter_enabled", json_true());
+        last_update_setting("LAST", "auto_splitter_enabled", json_true(), NULL);
     }
     else
     {
         atomic_store(&auto_splitter_enabled, 0);
-        last_update_setting("auto_splitter_enabled", json_false());
+        last_update_setting("LAST", "auto_splitter_enabled", json_false(), NULL);
     }
 }
 

@@ -9,7 +9,7 @@
 
 #include "settings.h"
 
-char *get_home_folder_path()
+char *get_settings_path()
 {
     uid_t uid = getuid();
     struct passwd *pw = getpwuid(uid);
@@ -18,14 +18,13 @@ char *get_home_folder_path()
         printf("Failed to get user information.\n");
         return NULL;
     }
-
-    return pw->pw_dir;
+    
+    return strcat(pw->pw_dir, "/.last/settings.json");
 }
 
-void last_update_setting(const char *setting, json_t *value)
+void last_update_setting(const char *section, const char *setting, json_t *value, json_t *description)
 {
-    char *settings_path = get_home_folder_path();
-    strcat(settings_path, "/.last/settings.json");
+    char *settings_path = get_settings_path();
 
     // Load existing settings
     json_t *root = NULL;
@@ -48,13 +47,17 @@ void last_update_setting(const char *setting, json_t *value)
     }
 
     // Update specific setting
-    json_t *last_obj = json_object_get(root, "LAST");
+    json_t *last_obj = json_object_get(root, section);
     if (!last_obj)
     {
         last_obj = json_object();
-        json_object_set(root, "LAST", last_obj);
+        json_object_set(root, section, last_obj);
     }
-    json_object_set_new(last_obj, setting, value);
+    
+    json_t *setting_obj = json_object();
+    json_object_set(setting_obj, "value", value);
+    json_object_set(setting_obj, "description", description);
+    json_object_set(last_obj, setting, setting_obj);
 
     // Save updated settings back to the file
     FILE *output_file = fopen(settings_path, "w");
@@ -73,8 +76,7 @@ void last_update_setting(const char *setting, json_t *value)
 
 json_t *load_settings()
 {
-    char *settings_path = get_home_folder_path();
-    strcat(settings_path, "/.last/settings.json");
+    char *settings_path = get_settings_path();
     FILE *file = fopen(settings_path, "r");
     if (file)
     {
@@ -111,10 +113,18 @@ json_t *get_setting_value(const char *section, const char *setting)
         return NULL;
     }
 
-    json_t *value = json_object_get(section_obj, setting);
-    if (!value)
+    json_t *setting_obj = json_object_get(section_obj, setting);
+    if (!setting_obj)
     {
         printf("Setting '%s' not found in section '%s'\n", setting, section);
+        json_decref(root);
+        return NULL;
+    }
+
+    json_t *value = json_object_get(setting_obj, "value");
+    if (!value)
+    {
+        printf("Value not found for setting '%s' in section '%s'\n", setting, section);
         json_decref(root);
         return NULL;
     }
