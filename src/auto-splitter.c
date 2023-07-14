@@ -239,6 +239,21 @@ void update_settings(const Setting* settings, int num_settings)
     }
 }
 
+void set_lua_settings(lua_State* L, const Setting* settings, int num_settings)
+{
+    for (int i = 0; i < num_settings; i++)
+    {
+        if (get_setting_value(basename(auto_splitter_file), settings[i].name) != NULL)
+        {
+            lua_getglobal(L, "settings");
+            lua_getfield(L, -1, settings[i].name);
+            lua_pushinteger(L, json_integer_value(get_setting_value(basename(auto_splitter_file), settings[i].name)));
+            lua_setfield(L, -2, "value");
+            lua_pop(L, 2);
+        }
+    }
+}
+
 void run_auto_splitter()
 {
     lua_State* L = luaL_newstate();
@@ -281,6 +296,8 @@ void run_auto_splitter()
 
     // Print the settings
     update_settings(settings, num_settings);
+
+    set_lua_settings(L, settings, num_settings);
 
     // Free the dynamically allocated memory
     free(settings);
