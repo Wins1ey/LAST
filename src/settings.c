@@ -137,3 +137,72 @@ json_t *get_setting_value(const char *section, const char *setting)
 
     return value;
 }
+
+Setting* get_section_settings(const char* section, int* num_settings)
+{
+    json_t* root = load_settings();
+    if (!root)
+    {
+        return NULL;
+    }
+
+    json_t* section_obj = json_object_get(root, section);
+    if (!section_obj)
+    {
+        printf("Section '%s' not found\n", section);
+        json_decref(root);
+        return NULL;
+    }
+
+    size_t num_elements = json_object_size(section_obj);
+    Setting* settings = (Setting*)malloc(num_elements * sizeof(Setting));
+    if (!settings)
+    {
+        json_decref(root);
+        return NULL;
+    }
+
+    int index = 0;
+    const char* setting_name;
+    json_t* setting_value;
+
+    json_object_foreach(section_obj, setting_name, setting_value)
+    {
+        if (json_is_object(setting_value))
+        {
+            json_t* value = json_object_get(setting_value, "value");
+
+            int setting_value_int = 0;
+
+            if (json_is_integer(value))
+            {
+                setting_value_int = json_integer_value(value);
+            }
+
+            json_t* description = json_object_get(setting_value, "description");
+            const char* setting_description = "";
+
+            if (description)
+            {
+                char* json_description = json_dumps(description, JSON_ENCODE_ANY);
+                if (json_description)
+                {
+                    setting_description = strdup(json_description);
+                    free(json_description);
+                }
+            }
+
+            settings[index].name = setting_name;
+            settings[index].value = setting_value_int;
+            settings[index].description = setting_description;
+
+            index++;
+        }
+    }
+
+    *num_settings = index;
+
+    json_decref(root);
+
+    return settings;
+}

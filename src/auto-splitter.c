@@ -30,12 +30,6 @@ bool prev_is_loading;
 
 extern last_process process;
 
-typedef struct {
-    const char* name;
-    int value;
-    const char* description;
-} Setting;
-
 void check_directories()
 {
     // Get the path to the user's directory
@@ -294,9 +288,10 @@ void run_auto_splitter()
     // Check and store the settings
     check_and_store_settings(L, &settings, &num_settings);
 
-    // Print the settings
+    // Update settings.json
     update_settings(settings, num_settings);
 
+    // Push the settings in the Lua file
     set_lua_settings(L, settings, num_settings);
 
     // Free the dynamically allocated memory

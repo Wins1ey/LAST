@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
+#include <libgen.h>
 
 #include <gtk/gtk.h>
 
@@ -1026,6 +1027,62 @@ static void toggle_auto_splitter(GtkCheckMenuItem *menu_item, gpointer user_data
     }
 }
 
+static void close_settings(GtkWidget *widget, gpointer data)
+{
+    gtk_widget_destroy(GTK_WIDGET(data));
+}
+
+static void open_settings(GtkWidget *widget, gpointer data)
+{
+    GtkWidget *settings_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(settings_window), "Settings");
+    g_signal_connect(settings_window, "destroy", G_CALLBACK(gtk_widget_destroy), NULL);
+
+    gtk_window_set_type_hint(GTK_WINDOW(settings_window), GDK_WINDOW_TYPE_HINT_DIALOG);
+
+    GtkWidget *grid = gtk_grid_new();
+    gtk_container_add(GTK_CONTAINER(settings_window), grid);
+
+    int num_settings;
+    Setting* settings = get_section_settings(basename(auto_splitter_file), &num_settings);
+
+    GtkWidget *label;
+    GtkWidget *entry;
+    for (int i = 0; i < num_settings; i++)
+    {
+        // Create the label widget
+        char label_text[100];
+        snprintf(label_text, sizeof(label_text), "%s: ", settings[i].name);
+        label = gtk_label_new(label_text);
+        gtk_grid_attach(GTK_GRID(grid), label, 0, i, 1, 1);
+    }
+
+    for (int i = 0; i < num_settings; i++)
+    {
+        // Create the entry widget
+        char entry_text[100];
+        snprintf(entry_text, sizeof(entry_text), "%d", settings[i].value);
+        entry = gtk_entry_new();
+        gtk_entry_set_text(GTK_ENTRY(entry), entry_text);
+        gtk_grid_attach(GTK_GRID(grid), entry, 1, i, 1, 1);
+    }
+
+    free(settings);
+
+    GtkWidget *button_box = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+    gtk_grid_attach(GTK_GRID(grid), button_box, 0, num_settings, 2, 1);
+
+
+    GtkWidget *close_button = gtk_button_new_with_label("Close");
+    g_signal_connect(close_button, "clicked", G_CALLBACK(close_settings), settings_window);
+    gtk_container_add(GTK_CONTAINER(button_box), close_button);
+
+    GtkWidget *save_button = gtk_button_new_with_label("Save");
+    gtk_container_add(GTK_CONTAINER(button_box), save_button);
+
+    gtk_widget_show_all(settings_window);
+}
+
 static gboolean button_right_click(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
     if (event->button == GDK_BUTTON_SECONDARY)
@@ -1046,6 +1103,7 @@ static void create_context_menu(LASTAppWindow *win, GApplication *app)
     GtkWidget *menu_open_auto_splitter = gtk_menu_item_new_with_label("Open Auto Splitter");
     GtkWidget *menu_enable_auto_splitter = gtk_check_menu_item_new_with_label("Enable Auto Splitter");
     gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_enable_auto_splitter), atomic_load(&auto_splitter_enabled));
+    GtkWidget *menu_settings = gtk_menu_item_new_with_label("Settings");
     GtkWidget *menu_reload = gtk_menu_item_new_with_label("Reload");
     GtkWidget *menu_close = gtk_menu_item_new_with_label("Close");
     GtkWidget *menu_quit = gtk_menu_item_new_with_label("Quit");
@@ -1055,6 +1113,7 @@ static void create_context_menu(LASTAppWindow *win, GApplication *app)
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_save_splits);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_open_auto_splitter);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_enable_auto_splitter);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_settings);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_reload);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_close);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_quit);
@@ -1065,6 +1124,7 @@ static void create_context_menu(LASTAppWindow *win, GApplication *app)
     g_signal_connect(menu_save_splits, "activate", G_CALLBACK(save_activated), app);
     g_signal_connect(menu_open_auto_splitter, "activate", G_CALLBACK(open_auto_splitter), app);
     g_signal_connect(menu_enable_auto_splitter, "toggled", G_CALLBACK(toggle_auto_splitter), NULL);
+    g_signal_connect(menu_settings, "activate", G_CALLBACK(open_settings), app);
     g_signal_connect(menu_reload, "activate", G_CALLBACK(reload_activated), app);
     g_signal_connect(menu_close, "activate", G_CALLBACK(close_activated), app);
     g_signal_connect(menu_quit, "activate", G_CALLBACK(quit_activated), app);
