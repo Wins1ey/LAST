@@ -1113,6 +1113,10 @@ static void open_settings(GtkWidget *widget, gpointer data)
 
     int num_settings;
     Setting* settings = get_section_settings(basename(auto_splitter_file), &num_settings);
+    if (settings == NULL)
+    {
+        return;
+    }
 
     GtkWidget *label;
     GtkWidget *entry;
