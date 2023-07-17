@@ -65,6 +65,25 @@ void check_directories()
     }
 }
 
+void get_process(lua_State* L)
+{
+    lua_getglobal(L, "process");
+    if (lua_isstring(L, -1))
+    {
+        const char* process_name = lua_tostring(L, -1);
+        if (process_name != NULL)
+        {
+            find_process_id(process_name);
+        }
+    }
+    else
+    {
+        printf("Process isn't defined as a string\n");
+        atomic_store(&auto_splitter_enabled, false);
+    }
+    lua_pop(L, 1); // Remove 'process' from the stack
+}
+
 void startup(lua_State* L)
 {
     lua_getglobal(L, "startup");
@@ -252,8 +271,6 @@ void run_auto_splitter()
 {
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
-    lua_pushcfunction(L, find_process_id);
-    lua_setglobal(L, "process");
     lua_pushcfunction(L, read_address);
     lua_setglobal(L, "readAddress");
 
@@ -327,6 +344,8 @@ void run_auto_splitter()
     bool update_exists = lua_isfunction(L, -1);
     lua_pop(L, 1); // Remove 'update' from the stack
 
+    get_process(L);
+
     if (startup_exists)
     {
         startup(L);
@@ -345,8 +364,12 @@ void run_auto_splitter()
         struct timespec clock_start;
         clock_gettime(CLOCK_MONOTONIC, &clock_start);
 
-        if (!atomic_load(&auto_splitter_enabled) || strcmp(current_file, auto_splitter_file) != 0 || !process_exists() || process.pid == 0)
+        if (!atomic_load(&auto_splitter_enabled) || strcmp(current_file, auto_splitter_file) != 0 || !process_exists())
         {
+            // if (!process_exists())
+            // {
+            //     atomic_store(&auto_splitter_enabled, false);
+            // }
             break;
         }
 
@@ -394,12 +417,12 @@ void run_auto_splitter()
 
 void *last_auto_splitter()
 {
-    while (true)
+    while (1)
     {
         if (atomic_load(&auto_splitter_enabled) && auto_splitter_file[0] != '\0')
         {
             run_auto_splitter();
         }
-        usleep(1000000); // Wait for 1 second before checking again
+        usleep(10000); // Wait for 10 milliseconds before checking again
     }
 }

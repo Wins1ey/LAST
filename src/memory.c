@@ -13,6 +13,8 @@
 bool memory_error;
 extern last_process process;
 
+ssize_t process_vm_readv(int pid, struct iovec *mem_local, int liovcnt, struct iovec *mem_remote, int riovcnt, int flags);
+
 #define READ_MEMORY_FUNCTION(value_type) \
     value_type read_memory_##value_type(uint64_t mem_address) \
     { \
