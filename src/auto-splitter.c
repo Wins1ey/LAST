@@ -268,6 +268,7 @@ void run_auto_splitter()
         lua_pop(L, 1); // Remove the error message from the stack
         fprintf(stderr, "Lua syntax error: %s\n", error_msg);
         lua_close(L);
+        atomic_store(&auto_splitter_enabled, false);
         return;
     }
 
@@ -279,6 +280,7 @@ void run_auto_splitter()
         lua_pop(L, 1); // Remove the error message from the stack
         fprintf(stderr, "Lua runtime error: %s\n", error_msg);
         lua_close(L);
+        atomic_store(&auto_splitter_enabled, false);
         return;
     }
 
@@ -343,7 +345,7 @@ void run_auto_splitter()
         struct timespec clock_start;
         clock_gettime(CLOCK_MONOTONIC, &clock_start);
 
-        if (!auto_splitter_enabled || strcmp(current_file, auto_splitter_file) != 0 || !process_exists() || process.pid == 0)
+        if (!atomic_load(&auto_splitter_enabled) || strcmp(current_file, auto_splitter_file) != 0 || !process_exists() || process.pid == 0)
         {
             break;
         }

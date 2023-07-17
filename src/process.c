@@ -7,6 +7,7 @@
 #include <lua.h>
 
 #include "process.h"
+#include "auto-splitter.h"
 
 struct last_process process;
 
@@ -64,17 +65,20 @@ void stock_process_id(const char* processtarget)
     char pid_output[128];
     pid_output[0] = '\0';
 
-    execute_command(pid_command, buffer, pid_output);
-
-    size_t space_pos = strcspn(pid_output, " ");
-
-    if (space_pos != strlen(pid_output))
+    while (process.pid == 0 && atomic_load(&auto_splitter_enabled))
     {
-        printf("Multiple PID's found for process: %s\n", process.name);
+        execute_command(pid_command, buffer, pid_output);
+        size_t space_pos = strcspn(pid_output, " ");
+        if (space_pos != strlen(pid_output))
+        {
+            printf("Multiple PID's found for process: %s\n", process.name);
+        }
+        process.pid = strtoul(pid_output, NULL, 10);
+        printf("\033[2J\033[1;1H"); // Clear the console
+        usleep(100000);
+        printf("%s isn't running.\n", process.name);
     }
-
-    process.pid = strtoul(pid_output, NULL, 10);
-
+    
     if (process.pid != 0)
     {
         printf("\033[2J\033[1;1H"); // Clear the console
@@ -82,10 +86,6 @@ void stock_process_id(const char* processtarget)
         printf("PID: %u\n", process.pid);
         process.base_address = find_base_address();
         process.dll_address = process.base_address;
-    }
-    else
-    {
-        printf("%s isn't running.\n", process.name);
     }
 }
 
