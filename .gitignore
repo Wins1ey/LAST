@@ -2,5 +2,7 @@
 LAST
 obj/
 src/last-gtk.h
+/asr/target
+libasr.a
 
 .vscode/

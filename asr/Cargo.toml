@@ -1,0 +1,21 @@
+[package]
+name = "asr"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+livesplit-auto-splitting = { git = "https://github.com/LiveSplit/livesplit-core" }
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.release]
+lto = true
+panic = "abort"
+strip = true
+codegen-units = 1
+
+[profile.release.build-override]
+opt-level = 0

@@ -1,8 +1,8 @@
 TARGET := LAST
 
-INC := -I/usr/include/lua5.* `pkg-config --cflags gtk+-3.0 x11 jansson`
-CFLAGS := -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter
-LDFLAGS := -llua `pkg-config --libs gtk+-3.0 x11 jansson`
+INC := $(shell pkg-config --cflags gtk+-3.0)
+CFLAGS := -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter 
+LDFLAGS := -L. -lasr $(shell pkg-config --libs gtk+-3.0 x11 jansson lua lua5.3)
 
 SRC_DIR := ./src
 OBJ_DIR := ./obj
@@ -23,11 +23,17 @@ ICON_DIR := /usr/share/icons/hicolor
 SCHEMA := last.gschema.xml
 SCHEMAS_DIR := /usr/share/glib-2.0/schemas
 
-build: last-gtk.h $(TARGET)
+build: last-gtk.h libasr.a $(TARGET)
+
+last-gtk.h: $(SRC_DIR)/last-gtk.css
+	xxd --include $(SRC_DIR)/last-gtk.css > $(SRC_DIR)/last-gtk.h || (rm $(SRC_DIR)/last-gtk.h; false)
+
+libasr.a: asr/src/lib.rs
+	(cd asr && cargo build --release && cp target/release/libasr.a ../.)
 
 # Rule to link object files to create executable
 $(TARGET): $(OBJECTS)
-	gcc $(CFLAGS) $(LDFLAGS) -o $@ $^
+	gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Rule to compile C source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
@@ -41,9 +47,6 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/components/%.c | $(OBJ_DIR)
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-last-gtk.h: $(SRC_DIR)/last-gtk.css
-	xxd --include $(SRC_DIR)/last-gtk.css > $(SRC_DIR)/last-gtk.h || (rm $(SRC_DIR)/last-gtk.h; false)
-
 install:
 	sudo cp $(TARGET) $(BIN_DIR)/$(BIN)
 	sudo cp $(ASSETS_DIR)/$(APP) $(APP_DIR)
@@ -55,7 +58,7 @@ install:
 	sudo cp $(SRC_DIR)/$(SCHEMA) $(SCHEMAS_DIR)
 	sudo glib-compile-schemas $(SCHEMAS_DIR)
 
-uninstall:
+uninstall: remove-schema
 	sudo rm -f $(BIN_DIR)/$(BIN)
 	sudo rm -f $(APP_DIR)/$(APP)
 	for size in 16 22 24 32 36 48 64 72 96 128 256 512; do \
@@ -66,8 +69,13 @@ remove-schema:
 	sudo rm $(SCHEMAS_DIR)/$(SCHEMA)
 	sudo glib-compile-schemas $(SCHEMAS_DIR)
 
-# Clean target to remove object files and LAS executable
 clean:
 	rm -rf $(TARGET) $(OBJ_DIR) $(SRC_DIR)/last-gtk.h
 
-.PHONY: build last-gtk.h install uninstall remove-schema clean
+clean-asr:
+	rm -rf libasr.a asr/target
+
+clean-all: clean
+	rm -rf libasr.a asr/target
+
+.PHONY: build last-gtk.h libasr.a install uninstall remove-schema clean clean-all
