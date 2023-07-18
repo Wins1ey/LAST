@@ -6,14 +6,16 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <stdatomic.h>
 
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
 
-#include "memory.h"
 #include "auto-splitter.h"
+#include "memory.h"
 #include "process.h"
+#include "asr.h"
 
 #define MAX_PATH_LENGTH 256
 
@@ -63,7 +65,110 @@ void check_directories()
     }
 }
 
-void startup(lua_State* L)
+int32_t state(void*)
+{
+    return 0;
+}
+
+void start(void*)
+{
+    atomic_store(&call_start, true);
+}
+
+void split(void*)
+{
+    atomic_store(&call_split, true);
+}
+
+void skip_split(void*)
+{
+
+}
+
+void undo_split(void*)
+{
+
+}
+
+void reset(void*)
+{
+    atomic_store(&call_reset, true);
+}
+
+void set_game_time(void*, int64_t)
+{
+
+}
+
+void pause_game_time(void*)
+{
+
+}
+
+void resume_game_time(void*)
+{
+
+}
+
+void asr_log(void*, const char* message)
+{
+    printf("[Auto Splitter] %s\n", message);
+}
+
+void run_asr()
+{
+    SettingsStore* settings_store = SettingsStore_new();
+    Runtime* runtime = Runtime_new(
+        auto_splitter_file,
+        settings_store,
+        NULL,
+        state,
+        start,
+        split,
+        skip_split,
+        undo_split,
+        reset,
+        set_game_time,
+        pause_game_time,
+        resume_game_time,
+        asr_log
+    );
+    if (runtime == NULL) {
+        printf("Runtime couldn't be created");
+    }
+
+    char current_file[MAX_PATH_LENGTH];
+    strcpy(current_file, auto_splitter_file);
+
+    while (1)
+    {
+        struct timespec clock_start;
+        clock_gettime(CLOCK_MONOTONIC, &clock_start);
+
+        if (!atomic_load(&auto_splitter_enabled) || strcmp(current_file, auto_splitter_file) != 0)
+        {
+            printf("Stop running the auto splitter.\n");
+            break;
+        }
+
+        if (!Runtime_step(runtime)) {
+            printf("The auto splitter trapped.\n");
+            break;
+        }
+
+        uint64_t rate = Runtime_tick_rate(runtime);
+        struct timespec clock_end;
+        clock_gettime(CLOCK_MONOTONIC, &clock_end);
+        long long duration = (clock_end.tv_sec - clock_start.tv_sec) * 1000000 + (clock_end.tv_nsec - clock_start.tv_nsec) / 1000;
+        if (duration < rate)
+        {
+            usleep(rate - duration);
+        }
+    }
+    Runtime_drop(runtime);
+}
+
+void lua_startup(lua_State* L)
 {
     lua_getglobal(L, "startup");
     lua_pcall(L, 0, 0, 0);
@@ -76,19 +181,19 @@ void startup(lua_State* L)
     lua_pop(L, 1); // Remove 'refreshRate' from the stack
 }
 
-void state(lua_State* L)
+void lua_state(lua_State* L)
 {
     lua_getglobal(L, "state");
     lua_pcall(L, 0, 0, 0);
 }
 
-void update(lua_State* L)
+void lua_update(lua_State* L)
 {
     lua_getglobal(L, "update");
     lua_pcall(L, 0, 0, 0);
 }
 
-void start(lua_State* L)
+void lua_start(lua_State* L)
 {
     lua_getglobal(L, "start");
     lua_pcall(L, 0, 1, 0);
@@ -99,7 +204,7 @@ void start(lua_State* L)
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
-void split(lua_State* L)
+void lua_split(lua_State* L)
 {
     lua_getglobal(L, "split");
     lua_pcall(L, 0, 1, 0);
@@ -110,7 +215,7 @@ void split(lua_State* L)
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
-void is_loading(lua_State* L)
+void lua_is_loading(lua_State* L)
 {
     lua_getglobal(L, "isLoading");
     lua_pcall(L, 0, 1, 0);
@@ -122,7 +227,7 @@ void is_loading(lua_State* L)
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
-void reset(lua_State* L)
+void lua_reset(lua_State* L)
 {
     lua_getglobal(L, "reset");
     lua_pcall(L, 0, 1, 0);
@@ -199,12 +304,12 @@ void run_auto_splitter()
 
     if (startup_exists)
     {
-        startup(L);
+        lua_startup(L);
     }
 
     if (state_exists)
     {
-        state(L);
+        lua_state(L);
     }
 
     printf("Refresh rate: %d\n", refresh_rate);
@@ -222,32 +327,32 @@ void run_auto_splitter()
 
         if (state_exists)
         {
-            state(L);
+            lua_state(L);
         }
 
         if (update_exists)
         {
-            update(L);
+            lua_update(L);
         }
 
         if (start_exists)
         {
-            start(L);
+            lua_start(L);
         }
 
         if (split_exists)
         {
-            split(L);
+            lua_split(L);
         }
 
         if (is_loading_exists)
         {
-            is_loading(L);
+            lua_is_loading(L);
         }
 
         if (reset_exists)
         {
-            reset(L);
+            lua_reset(L);
         }
 
         struct timespec clock_end;
@@ -268,7 +373,14 @@ void *last_auto_splitter()
     {
         if (atomic_load(&auto_splitter_enabled) && auto_splitter_file[0] != '\0')
         {
-            run_auto_splitter();
+            if (strcmp(auto_splitter_file + strlen(auto_splitter_file) - 4, ".lua") == 0)
+            {
+                run_auto_splitter();
+            }
+            else
+            {
+                run_asr();
+            }
         }
         usleep(1000000); // Wait for 1 second before checking again
     }

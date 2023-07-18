@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
 #include <jansson.h>
+
 #include "last.h"
 
 long long last_time_now(void)
