@@ -1,6 +1,7 @@
 /* bind.h
  * Copyright (C) 2008 Alex Graveley
  * Copyright (C) 2010 Ulrik Sverdrup <ulrik.sverdrup@gmail.com>
+ * Copyright (C) 2023 Wins1ey
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -51,4 +52,4 @@ guint32 keybinder_get_current_event_time (void);
 
 G_END_DECLS
 
-#endif /* __BIND__ */
+#endif /* __BIND_H__ */
