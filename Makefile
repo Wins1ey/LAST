@@ -2,7 +2,7 @@ TARGET := LAST
 
 INC := $(shell pkg-config --cflags gtk+-3.0)
 CFLAGS := -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter 
-LDFLAGS := -L. -lasr $(shell pkg-config --libs gtk+-3.0 x11 jansson lua lua5.3)
+LDFLAGS := -L. -lasr $(shell pkg-config --libs gtk+-3.0 x11 jansson lua5.3)
 
 SRC_DIR := ./src
 OBJ_DIR := ./obj

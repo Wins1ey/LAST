@@ -18,7 +18,7 @@ LAST requires the following dependencies on your system to compile:
 - `libgtk+-3.0`
 - `x11`
 - `libjansson`
-- `lua`
+- `lua5.3`
 
 And to install:
 
@@ -85,6 +85,7 @@ Split files in LAST are stored as well-formed JSON. The split file must contain 
 | title         | Title string at top of window         |
 | start_delay   | Non-negative delay until timer starts |
 | world_record  | Best known time                       |
+| attempt_count | Number of attempts                    |
 | splits        | Array of split objects                |
 | theme         | Window theme                          |
 | theme_variant | Window theme variant                  |
