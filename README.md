@@ -1,13 +1,13 @@
 # LAST <img src="assets/last.png" width=32> Linux Auto Splitting Timer
 
-LAST brings auto splitting functionality to [urn](https://github.com/3snowp7im/urn) with Lua-based auto splitters that are easy to port from asl.
+LAST brings Auto Splitting functionality to [urn](https://github.com/3snowp7im/urn) with Lua Auto Splitters that are easy to port from asl, and the new LiveSplit Auto Splitting Runtime.
 
 <img src="assets/theme-1.png" width=350> <img src="assets/theme-2.png" width=350>
 
 ## Features
 
 - **Split Tracking and Timing:** Accurately track and time your speedruns with ease.
-- **Auto Splitter Support:** Utilize Lua-based auto splitters to automate split timing based on in-game events.
+- **Auto Splitter Support:** Utilize Lua Auto Splitters or Auto Splitters for the new LiveSplit Auto Splitting Runtime to automate split timing based on in-game events.
 - **Customizable Themes:** Personalize your timer's appearance by creating and applying custom themes.
 - **Flexible Configuration:** Configure keybindings and various settings to suit your preferences.
 
@@ -18,7 +18,8 @@ LAST requires the following dependencies on your system to compile:
 - `libgtk+-3.0`
 - `x11`
 - `libjansson`
-- `lua5.3`
+- `liblua5.3`
+- `rust`
 
 And to install:
 
@@ -34,8 +35,9 @@ make build install
 
 ## Getting Started
 
+There are example Lua Auto Splitters, Split Files and Themes in the [LAST-Extras](https://github.com/Wins1ey/LAST-Extras) repo.
 1. Launch LAST by executing the compiled binary. `./LAST`
-2. When first launched, LAST will create the `.last/` directory in your home directory. Auto splitters, splits and themes go in their respective folders inside.
+2. When first launched, LAST will create the `.last/` directory in your home directory. Auto Splitters, Splits and Themes go in their respective folders inside.
 3. The initial window is undecorated, but you can toggle window decorations by pressing the right Control key.
 4. Control the timer using the following key presses:
 
@@ -74,7 +76,7 @@ Keybind strings should be parseable by
 
 ## Auto Splitters
 
-LAST supports auto splitters written in Lua to automate split timing based on in-game events. When running LAST in the terminal you will initally be greeted with an auto splitter downloader which grabs them from [here](https://github.com/Wins1ey/LuaAutoSplitters). Feel free to make your own, documentation will be made soon.
+LAST supports Auto Splitters written in Lua and for the new LiveSplit Auto Splitting Runtime. Lua Auto Splitter documentation will be made soon.
 
 ## Split Files
 
