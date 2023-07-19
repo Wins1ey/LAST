@@ -150,3 +150,16 @@ The following CSS classes can be used to style the elements of the LAST interfac
 .personal-best
 .world-record-label
 .world-record
+```
+
+## Questions and Answers
+### Does this require elevated permissions (sudo)?
+No.
+### The timer does nothing. What should I do?
+This probably means that there's something wrong with the autosplitter's Lua file. Open LAST through a terminal and the output should tell you what's wrong.
+### Do I *need* to be using an autosplitter to use this?
+No. It also functions as a regular timer.
+### Does this work for games running under WINE/Proton?
+Yes.
+### Does this work for Linux native games?
+Maybe. The tools to find addresses on Linux aren't very good and we found trouble in finding them. If you *can* get static addresses for a Linux game though, in theory, it should work. You may have to download the Windows version of a game even if there is a native Linux version. This can be done in Steam by going into the game's properties and forcing the use of a compatibility tool.
