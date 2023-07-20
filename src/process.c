@@ -65,7 +65,7 @@ void stock_process_id(const char* processtarget)
     char pid_output[128];
     pid_output[0] = '\0';
 
-    while (process.pid == 0 && atomic_load(&auto_splitter_enabled))
+    while (pid_output[0] == '\0' && atomic_load(&auto_splitter_enabled))
     {
         execute_command(pid_command, buffer, pid_output);
         size_t space_pos = strcspn(pid_output, " ");
@@ -75,10 +75,10 @@ void stock_process_id(const char* processtarget)
         }
         process.pid = strtoul(pid_output, NULL, 10);
         printf("\033[2J\033[1;1H"); // Clear the console
-        usleep(100000);
+        usleep(10000);
         printf("%s isn't running.\n", process.name);
     }
-    
+
     if (process.pid != 0)
     {
         printf("\033[2J\033[1;1H"); // Clear the console
@@ -89,20 +89,17 @@ void stock_process_id(const char* processtarget)
     }
 }
 
-int find_process_id(lua_State* L)
+void find_process_id(const char* process_name)
 {
-    process.name = lua_tostring(L, 1);
+    process.name = process_name;
     char command[256];
     printf("\033[2J\033[1;1H"); // Clear the console
     snprintf(command, sizeof(command), "pgrep \"%.*s\"", (int)strnlen(process.name, 15), process.name);
 
     stock_process_id(command);
-
-    return 0;
 }
 
 int process_exists()
 {
-    int result = kill(process.pid, 0);
-    return result == 0;
+    return !kill(process.pid, 0);
 }

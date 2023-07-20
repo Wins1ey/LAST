@@ -63,34 +63,56 @@ void check_directories()
     }
 }
 
-void startup(lua_State* L)
+void lua_startup(lua_State* L)
 {
-    lua_getglobal(L, "startup");
+    lua_getglobal(L, "Startup");
     lua_pcall(L, 0, 0, 0);
 
-    lua_getglobal(L, "refreshRate");
+    lua_getglobal(L, "Process");
+    if (lua_isstring(L, -1))
+    {
+        const char* process_name = lua_tostring(L, -1);
+        if (process_name != NULL)
+        {
+            find_process_id(process_name);
+        }
+    }
+    else
+    {
+        printf("Process isn't defined as a string\n");
+        atomic_store(&auto_splitter_enabled, false);
+    }
+    lua_pop(L, 1); // Remove 'Process' from the stack
+
+    lua_getglobal(L, "RefreshRate");
     if (lua_isnumber(L, -1))
     {
         refresh_rate = lua_tointeger(L, -1);
     }
-    lua_pop(L, 1); // Remove 'refreshRate' from the stack
+    lua_pop(L, 1); // Remove 'RefreshRate' from the stack
 }
 
-void state(lua_State* L)
+void lua_init(lua_State* L)
 {
-    lua_getglobal(L, "state");
+    lua_getglobal(L, "Init");
     lua_pcall(L, 0, 0, 0);
 }
 
-void update(lua_State* L)
+void lua_state(lua_State* L)
 {
-    lua_getglobal(L, "update");
+    lua_getglobal(L, "State");
     lua_pcall(L, 0, 0, 0);
 }
 
-void start(lua_State* L)
+void lua_update(lua_State* L)
 {
-    lua_getglobal(L, "start");
+    lua_getglobal(L, "Update");
+    lua_pcall(L, 0, 0, 0);
+}
+
+void lua_start(lua_State* L)
+{
+    lua_getglobal(L, "Start");
     lua_pcall(L, 0, 1, 0);
     if (lua_toboolean(L, -1))
     {
@@ -99,9 +121,9 @@ void start(lua_State* L)
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
-void split(lua_State* L)
+void lua_split(lua_State* L)
 {
-    lua_getglobal(L, "split");
+    lua_getglobal(L, "Split");
     lua_pcall(L, 0, 1, 0);
     if (lua_toboolean(L, -1))
     {
@@ -110,9 +132,9 @@ void split(lua_State* L)
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
-void is_loading(lua_State* L)
+void lua_is_loading(lua_State* L)
 {
-    lua_getglobal(L, "isLoading");
+    lua_getglobal(L, "IsLoading");
     lua_pcall(L, 0, 1, 0);
     if (lua_toboolean(L, -1) != prev_is_loading)
     {
@@ -122,9 +144,9 @@ void is_loading(lua_State* L)
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
-void reset(lua_State* L)
+void lua_reset(lua_State* L)
 {
-    lua_getglobal(L, "reset");
+    lua_getglobal(L, "Reset");
     lua_pcall(L, 0, 1, 0);
     if (lua_toboolean(L, -1))
     {
@@ -133,78 +155,112 @@ void reset(lua_State* L)
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
+void setup_sandbox(lua_State* L)
+{
+    luaL_openlibs(L);
+
+    lua_newtable(L);
+
+    lua_pushnil(L);
+    lua_setglobal(L, "os"); // Disable 'os' library
+    lua_pushnil(L);
+    lua_setglobal(L, "io"); // Disable 'io' library
+    lua_pushnil(L);
+    lua_setglobal(L, "debug"); // Disable 'debug' library
+    lua_pushnil(L);
+    lua_setglobal(L, "package"); // Disable 'package' library
+    
+    
+    lua_pushnil(L);
+    lua_setglobal(L, "dofile"); // Disable 'dofile' function
+    lua_pushnil(L);
+    lua_setglobal(L, "loadfile"); // Disable 'loadfile' function
+    lua_pushnil(L);
+    lua_setglobal(L, "load"); // Disable 'load' function
+    lua_pushnil(L);
+    lua_setglobal(L, "require"); // Disable 'require' function
+
+    lua_getglobal(L, "string");
+    lua_pushnil(L);
+    lua_setfield(L, -2, "dump"); // Disable 'string.dump' function
+    lua_pop(L, 1); // Pop the 'string' table from the stack
+
+    lua_pushcfunction(L, read_address);
+    lua_setglobal(L, "ReadAddress");
+
+    lua_setglobal(L, "_G");
+}
+
 void run_auto_splitter()
 {
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-    lua_pushcfunction(L, find_process_id);
-    lua_setglobal(L, "process");
-    lua_pushcfunction(L, read_address);
-    lua_setglobal(L, "readAddress");
-
     char current_file[MAX_PATH_LENGTH];
     strcpy(current_file, auto_splitter_file);
+
+    lua_State* L = luaL_newstate();
+    setup_sandbox(L);
 
     // Load the Lua file
     if (luaL_loadfile(L, auto_splitter_file) != LUA_OK)
     {
-        // Error loading the file
-        const char* error_msg = lua_tostring(L, -1);
-        lua_pop(L, 1); // Remove the error message from the stack
-        fprintf(stderr, "Lua syntax error: %s\n", error_msg);
+        fprintf(stderr, "Lua syntax error: %s\n", lua_tostring(L, -1));
         lua_close(L);
         atomic_store(&auto_splitter_enabled, false);
         return;
     }
 
-    // Execute the Lua file
-    if (lua_pcall(L, 0, LUA_MULTRET, 0) != LUA_OK)
-    {
-        // Error executing the file
-        const char* error_msg = lua_tostring(L, -1);
-        lua_pop(L, 1); // Remove the error message from the stack
-        fprintf(stderr, "Lua runtime error: %s\n", error_msg);
+    // Run the Lua file
+    if (lua_pcall(L, 0, LUA_MULTRET, 0) != LUA_OK) {
+        printf("Error executing Lua file: %s\n", lua_tostring(L, -1));
         lua_close(L);
         atomic_store(&auto_splitter_enabled, false);
         return;
     }
 
-    lua_getglobal(L, "state");
+    lua_getglobal(L, "Init");
+    bool init_exists = lua_isfunction(L, -1);
+    lua_pop(L, 1); // Remove 'Init' from the stack
+
+    lua_getglobal(L, "State");
     bool state_exists = lua_isfunction(L, -1);
     lua_pop(L, 1); // Remove 'state' from the stack
 
-    lua_getglobal(L, "start");
+    lua_getglobal(L, "Start");
     bool start_exists = lua_isfunction(L, -1);
     lua_pop(L, 1); // Remove 'start' from the stack
 
-    lua_getglobal(L, "split");
+    lua_getglobal(L, "Split");
     bool split_exists = lua_isfunction(L, -1);
     lua_pop(L, 1); // Remove 'split' from the stack
 
-    lua_getglobal(L, "isLoading");
+    lua_getglobal(L, "IsLoading");
     bool is_loading_exists = lua_isfunction(L, -1);
     lua_pop(L, 1); // Remove 'isLoading' from the stack
 
-    lua_getglobal(L, "startup");
+    lua_getglobal(L, "Startup");
     bool startup_exists = lua_isfunction(L, -1);
-    lua_pop(L, 1); // Remove 'startup' from the stack
+    lua_pop(L, 1); // Remove 'Startup' from the stack
 
-    lua_getglobal(L, "reset");
+    lua_getglobal(L, "Reset");
     bool reset_exists = lua_isfunction(L, -1);
     lua_pop(L, 1); // Remove 'reset' from the stack
 
-    lua_getglobal(L, "update");
+    lua_getglobal(L, "Update");
     bool update_exists = lua_isfunction(L, -1);
     lua_pop(L, 1); // Remove 'update' from the stack
 
     if (startup_exists)
     {
-        startup(L);
+        lua_startup(L);
+    }
+
+    if (init_exists)
+    {
+        lua_init(L);
     }
 
     if (state_exists)
     {
-        state(L);
+        lua_state(L);
     }
 
     printf("Refresh rate: %d\n", refresh_rate);
@@ -215,39 +271,48 @@ void run_auto_splitter()
         struct timespec clock_start;
         clock_gettime(CLOCK_MONOTONIC, &clock_start);
 
-        if (!atomic_load(&auto_splitter_enabled) || strcmp(current_file, auto_splitter_file) != 0 || !process_exists() || process.pid == 0)
+        if (!atomic_load(&auto_splitter_enabled) || strcmp(current_file, auto_splitter_file) != 0)
         {
             break;
         }
 
+        if (!process_exists())
+        {
+            find_process_id(process.name);
+            if (init_exists)
+            {
+                lua_init(L);
+            }
+        }
+
         if (state_exists)
         {
-            state(L);
+            lua_state(L);
         }
 
         if (update_exists)
         {
-            update(L);
+            lua_update(L);
         }
 
         if (start_exists)
         {
-            start(L);
+            lua_start(L);
         }
 
         if (split_exists)
         {
-            split(L);
+            lua_split(L);
         }
 
         if (is_loading_exists)
         {
-            is_loading(L);
+            lua_is_loading(L);
         }
 
         if (reset_exists)
         {
-            reset(L);
+            lua_reset(L);
         }
 
         struct timespec clock_end;
@@ -270,6 +335,6 @@ void *last_auto_splitter()
         {
             run_auto_splitter();
         }
-        usleep(1000000); // Wait for 1 second before checking again
+        usleep(10000); // Wait for 10 milliseconds before checking again
     }
 }
