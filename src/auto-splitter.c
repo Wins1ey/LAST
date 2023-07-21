@@ -164,18 +164,19 @@ void lua_sandbox(lua_State* L)
 
     lua_setglobal(L, "_G");
 }
-
 int lua_callfunction(lua_State* L, const char* func_name, int num_args, int num_returns)
 {
     lua_getglobal(L, func_name);
-    if (lua_isfunction(L, -1) && lua_pcall(L, num_args, num_returns, 0) != LUA_OK)
+    if (lua_isfunction(L, -1))
     {
-        printf("Error executing Lua function '%s': %s\n", func_name, lua_tostring(L, -1));
-        lua_close(L);
-        atomic_store(&auto_splitter_enabled, false);
-        return 0;
+        if (lua_pcall(L, num_args, num_returns, 0) != LUA_OK)
+        {
+            printf("Error executing Lua function '%s': %s\n", func_name, lua_tostring(L, -1));
+            return 0;
+        }
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
 void lua_startup(lua_State* L)
