@@ -903,6 +903,8 @@ static void open_auto_splitter(GSimpleAction *action,
         strcpy(auto_splitter_file, filename);
         last_update_setting("auto_splitter_file", json_string(filename));
         g_free(filename);
+        atomic_store(&auto_splitter_enabled, 1);
+        last_update_setting("auto_splitter_enabled", json_true());
     }
     gtk_widget_destroy(dialog);
 }
