@@ -1,8 +1,8 @@
 TARGET := LAST
 
-INC := -I/usr/include/lua5.* `pkg-config --cflags gtk+-3.0 x11 jansson`
-CFLAGS := -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter
-LDFLAGS := -llua `pkg-config --libs gtk+-3.0 x11 jansson`
+INC := $(shell pkg-config --cflags gtk+-3.0)
+CFLAGS := -std=gnu99 -O2 -pthread -Wall
+LDFLAGS := $(shell pkg-config --libs gtk+-3.0 x11 jansson lua5.4)
 
 SRC_DIR := ./src
 OBJ_DIR := ./obj
@@ -27,15 +27,19 @@ build: last-gtk.h $(TARGET)
 
 # Rule to link object files to create executable
 $(TARGET): $(OBJECTS)
-	gcc $(CFLAGS) $(LDFLAGS) -o $@ $^
+	@echo Creating $@
+	@gcc $(CFLAGS) $(LDFLAGS) -o $@ $^
+	@echo Done
 
 # Rule to compile C source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
-	gcc $(INC) $(CFLAGS) -c -o $@ $<
+	@echo Compiling $<
+	@gcc $(INC) $(CFLAGS) -c -o $@ $<
 
 # Rule to compile C component source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/components/%.c | $(OBJ_DIR)
-	gcc $(INC) $(CFLAGS) -c -o $@ $<
+	@echo Compiling $<
+	@gcc $(INC) $(CFLAGS) -c -o $@ $<
 
 # Rule to create the object directory
 $(OBJ_DIR):
