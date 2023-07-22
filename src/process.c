@@ -74,15 +74,13 @@ void stock_process_id(const char* processtarget)
             printf("Multiple PID's found for process: %s\n", process.name);
         }
         process.pid = strtoul(pid_output, NULL, 10);
-        printf("\033[2J\033[1;1H"); // Clear the console
         usleep(10000);
-        printf("%s isn't running.\n", process.name);
+        printf("%s isn't running.\r", process.name);
     }
 
     if (process.pid != 0)
     {
-        printf("\033[2J\033[1;1H"); // Clear the console
-        printf("Process: %s\n", process.name);
+        printf("Process: %s      \n", process.name);
         printf("PID: %u\n", process.pid);
         process.base_address = find_base_address();
         process.dll_address = process.base_address;
@@ -93,7 +91,6 @@ void find_process_id(const char* process_name)
 {
     process.name = process_name;
     char command[256];
-    printf("\033[2J\033[1;1H"); // Clear the console
     snprintf(command, sizeof(command), "pgrep \"%.*s\"", (int)strnlen(process.name, 15), process.name);
 
     stock_process_id(command);
