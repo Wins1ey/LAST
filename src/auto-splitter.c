@@ -218,9 +218,22 @@ void lua_state(lua_State* L)
     lua_callfunction(L, "State", 0, 0);
 }
 
-void lua_update(lua_State* L)
+int lua_update(lua_State* L)
 {
-    lua_callfunction(L, "Update", 0, 0);
+    if(lua_callfunction(L, "Update", 0, 1))
+    {
+        if (lua_isboolean(L, -1))
+        {
+            return lua_toboolean(L, -1);
+        }
+        lua_pop(L, 1);
+    }
+    return 1;
+}
+
+void lua_onstart(lua_State* L)
+{
+    lua_callfunction(L, "OnStart", 0, 0);
 }
 
 void lua_start(lua_State* L)
@@ -230,9 +243,15 @@ void lua_start(lua_State* L)
         if (lua_toboolean(L, -1))
         {
             atomic_store(&call_start, true);
+            lua_onstart(L);
         }
         lua_pop(L, 1);
     }
+}
+
+void lua_onsplit(lua_State* L)
+{
+    lua_callfunction(L, "OnSplit", 0, 0);
 }
 
 void lua_split(lua_State* L)
@@ -242,12 +261,13 @@ void lua_split(lua_State* L)
         if (lua_toboolean(L, -1))
         {
             atomic_store(&call_split, true);
+            lua_onsplit(L);
         }
         lua_pop(L, 1);
     }
 }
 
-void lua_is_loading(lua_State* L)
+void lua_isloading(lua_State* L)
 {
     if (lua_callfunction(L, "IsLoading", 0, 1))
     {
@@ -260,16 +280,24 @@ void lua_is_loading(lua_State* L)
     }
 }
 
-void lua_reset(lua_State* L)
+void lua_onreset(lua_State* L)
+{
+    lua_callfunction(L, "OnReset", 0, 0);
+}
+
+int lua_reset(lua_State* L)
 {
     if (lua_callfunction(L, "Reset", 0, 1))
     {
         if (lua_toboolean(L, -1))
         {
             atomic_store(&call_reset, true);
+            lua_onreset(L);
+            return 1;
         }
         lua_pop(L, 1);
     }
+    return 0;
 }
 
 void run_auto_splitter()
@@ -296,7 +324,6 @@ void run_auto_splitter()
 
     lua_startup(L);
     lua_init(L);
-    lua_state(L);
 
     printf("Refresh rate: %d\n", refresh_rate);
     int rate = 1000000 / refresh_rate;
@@ -320,11 +347,15 @@ void run_auto_splitter()
         }
 
         lua_state(L);
-        lua_update(L);
-        lua_start(L);
-        lua_split(L);
-        lua_is_loading(L);
-        lua_reset(L);
+        if (lua_update(L) != 0)
+        {
+            lua_isloading(L);
+            if (lua_reset(L) != 1)
+            {
+                lua_split(L);
+            }
+            lua_start(L);
+        }
 
         struct timespec clock_end;
         clock_gettime(CLOCK_MONOTONIC, &clock_end);
