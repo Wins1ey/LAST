@@ -164,6 +164,7 @@ void lua_sandbox(lua_State* L)
 
     lua_setglobal(L, "_G");
 }
+
 int lua_callfunction(lua_State* L, const char* func_name, int num_args, int num_returns)
 {
     lua_getglobal(L, func_name);
@@ -300,6 +301,16 @@ int lua_reset(lua_State* L)
     return 0;
 }
 
+void lua_exit(lua_State* L)
+{
+    lua_callfunction(L, "Exit", 0, 0);
+}
+
+void lua_shutdown(lua_State* L)
+{
+    lua_callfunction(L, "Shutdown", 0, 0);
+}
+
 void run_auto_splitter()
 {
     lua_State* L = luaL_newstate();
@@ -338,10 +349,12 @@ void run_auto_splitter()
 
         if (!atomic_load(&auto_splitter_enabled) || strcmp(current_file, auto_splitter_file) != 0)
         {
+            lua_shutdown(L);
             break;
         }
         if (!process_exists())
         {
+            lua_exit(L);
             find_process_id(process.name);
             lua_init(L);
         }
