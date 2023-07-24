@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
@@ -7,17 +8,16 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include <lua.h>
-#include <lauxlib.h>
+#include <luajit.h>
 #include <lualib.h>
+#include <lauxlib.h>
 
-#include "memory.h"
 #include "auto-splitter.h"
+#include "lib_init.h"
+#include "memory.h"
 #include "process.h"
 
-#define MAX_PATH_LENGTH 256
-
-char auto_splitter_file[MAX_PATH_LENGTH];
+char auto_splitter_file[256];
 int refresh_rate = 60;
 atomic_bool auto_splitter_enabled = true;
 atomic_bool call_start = false;
@@ -28,62 +28,17 @@ bool prev_is_loading;
 
 extern last_process process;
 
-void check_directories()
-{
-    // Get the path to the user's directory
-    struct passwd *pw = getpwuid(getuid());
-    const char *user_directory = pw->pw_dir;
-    char last_directory[241];
-    char auto_splitters_directory[MAX_PATH_LENGTH];
-    char themes_directory[MAX_PATH_LENGTH];
-    char splits_directory[MAX_PATH_LENGTH];
-    snprintf(last_directory, MAX_PATH_LENGTH, "%s/.last", user_directory);
-    snprintf(auto_splitters_directory, MAX_PATH_LENGTH, "%s/auto-splitters", last_directory);
-    snprintf(themes_directory, MAX_PATH_LENGTH, "%s/themes", last_directory);
-    snprintf(splits_directory, MAX_PATH_LENGTH, "%s/splits", last_directory);
-
-    // Make the LAST directory if it doesn't exist
-    if (mkdir(last_directory, 0755) == -1) {
-        // Directory already exists or there was an error
-    }
-
-    // Make the autosplitters directory if it doesn't exist
-    if (mkdir(auto_splitters_directory, 0755) == -1) {
-        // Directory already exists or there was an error
-    }
-
-    // Make the themes directory if it doesn't exist
-    if (mkdir(themes_directory, 0755) == -1) {
-        // Directory already exists or there was an error
-    }
-
-    // Make the splits directory if it doesn't exist
-    if (mkdir(splits_directory, 0755) == -1) {
-        // Directory already exists or there was an error
-    }
-}
-
-static int lua_disable(lua_State* L) {
-    const char* func_name = lua_tostring(L, lua_upvalueindex(1));
-    printf("'%s' has been disabled.\n", func_name);
-    return 0;
-}
-
 void lua_disablefunction(lua_State* L, const char* module_name, const char* func_name)
 {
     if (module_name == NULL)
     {
-        lua_pushstring(L, func_name);
-        lua_pushcclosure(L, lua_disable, 1);
+        lua_pushnil(L);
         lua_setglobal(L, func_name);
     }
     else
     {
         lua_getglobal(L, module_name);
-        char combined[256]; // Adjust the buffer size as needed
-        snprintf(combined, sizeof(combined), "%s.%s", module_name, func_name);
-        lua_pushstring(L, combined);
-        lua_pushcclosure(L, lua_disable, 1);
+        lua_pushnil(L);
         lua_setfield(L, -2, func_name);
         lua_pop(L, 1);
     }
@@ -91,54 +46,33 @@ void lua_disablefunction(lua_State* L, const char* module_name, const char* func
 
 void lua_disablefunctions(lua_State* L, const char* module_name, const char* func_names[])
 {
-    if (module_name == NULL)
+    for (int i = 0; func_names[i] != NULL; i++)
     {
-        for (int i = 0; func_names[i] != NULL; i++)
-        {
-            lua_pushstring(L, func_names[i]);
-            lua_pushcclosure(L, lua_disable, 1);
-            lua_setglobal(L, func_names[i]);
-        }
+        lua_disablefunction(L, module_name, func_names[i]);
     }
-    else
-    {
-        lua_getglobal(L, module_name);
-        for (int i = 0; func_names[i] != NULL; i++)
-        {
-            char combined[256]; // Adjust the buffer size as needed
-            snprintf(combined, sizeof(combined), "%s.%s", module_name, func_names[i]);
-            lua_pushstring(L, combined);
-            lua_pushcclosure(L, lua_disable, 1);
-            lua_setfield(L, -2, func_names[i]);
-        }
-        lua_pop(L, 1);
-    }
-}
-
-void lua_disablemodule(lua_State* L, const char* module_name)
-{
-    lua_pushstring(L, module_name);
-    lua_pushcclosure(L, lua_disable, 1);
-    lua_setglobal(L, module_name);
 }
 
 void lua_sandbox(lua_State* L)
 {
-    const char* main_functions[] = {
+    const char* main_funcs[] = {
         "collectgarbage",
         "dofile",
         "getmetatable",
         "setmetatable",
+        "getfenv",
+        "setfenv",
         "load",
         "loadfile",
+        "loadstring",
         "rawequal",
         "rawget",
-        "rawlen",
         "rawset",
+        "module",
         "require",
+        "newproxy",
         NULL
     };
-    const char* os_functions[] = {
+    const char* os_funcs[] = {
         "execute",
         "exit",
         "getenv",
@@ -152,15 +86,13 @@ void lua_sandbox(lua_State* L)
 
     lua_newtable(L);
 
-    lua_disablemodule(L, "io");
-    lua_disablemodule(L, "debug");
-    lua_disablemodule(L, "package");
+    lua_disablefunctions(L, NULL, main_funcs);
+    lua_disablefunctions(L, "os", os_funcs);
     lua_disablefunction(L, "string", "dump");
-    lua_disablefunctions(L, NULL, main_functions);
-    lua_disablefunctions(L, "os", os_functions);
+    lua_disablefunction(L, "math", "randomseed");
     
     lua_pushcfunction(L, read_address);
-    lua_setglobal(L, "ReadAddress");
+    lua_setglobal(L, "readAddress");
 
     lua_setglobal(L, "_G");
 }
@@ -180,48 +112,49 @@ int lua_callfunction(lua_State* L, const char* func_name, int num_args, int num_
     return 0;
 }
 
-void lua_startup(lua_State* L)
+int lua_startup(lua_State* L, char* current_file)
 {
-    if (lua_callfunction(L, "Startup", 0, 0))
+    if (lua_callfunction(L, "startup", 0, 0))
     {
-        lua_getglobal(L, "Process");
-        if (lua_isstring(L, -1))
-        {
-            const char* process_name = lua_tostring(L, -1);
-            if (process_name != NULL)
-            {
-                find_process_id(process_name);
-            }
-        }
-        else
-        {
-            printf("Process isn't defined as a string\n");
-            atomic_store(&auto_splitter_enabled, false);
-        }
-        lua_pop(L, 1);
-
-        lua_getglobal(L, "RefreshRate");
+        lua_getglobal(L, "refreshRate");
         if (lua_isnumber(L, -1))
         {
             refresh_rate = lua_tointeger(L, -1);
         }
         lua_pop(L, 1);
+
+        lua_getglobal(L, "process");
+        if (lua_isstring(L, -1))
+        {
+            const char* process_name = lua_tostring(L, -1);
+            if (process_name != NULL)
+            {
+                return find_process_id(process_name, current_file);
+            }
+        }
+        else
+        {
+            printf("process isn't defined as a string\n");
+            atomic_store(&auto_splitter_enabled, false);
+        }
+        lua_pop(L, 1);
     }
+    return 0;
 }
 
 void lua_init(lua_State* L)
 {
-    lua_callfunction(L, "Init", 0, 0);
+    lua_callfunction(L, "init", 0, 0);
 }
 
 void lua_state(lua_State* L)
 {
-    lua_callfunction(L, "State", 0, 0);
+    lua_callfunction(L, "state", 0, 0);
 }
 
 int lua_update(lua_State* L)
 {
-    if(lua_callfunction(L, "Update", 0, 1))
+    if(lua_callfunction(L, "update", 0, 1))
     {
         if (lua_isboolean(L, -1))
         {
@@ -234,12 +167,12 @@ int lua_update(lua_State* L)
 
 void lua_onstart(lua_State* L)
 {
-    lua_callfunction(L, "OnStart", 0, 0);
+    lua_callfunction(L, "onStart", 0, 0);
 }
 
 void lua_start(lua_State* L)
 {
-    if (lua_callfunction(L, "Start", 0, 1))
+    if (lua_callfunction(L, "start", 0, 1))
     {
         if (lua_toboolean(L, -1))
         {
@@ -252,12 +185,12 @@ void lua_start(lua_State* L)
 
 void lua_onsplit(lua_State* L)
 {
-    lua_callfunction(L, "OnSplit", 0, 0);
+    lua_callfunction(L, "onSplit", 0, 0);
 }
 
 void lua_split(lua_State* L)
 {
-    if (lua_callfunction(L, "Split", 0, 1))
+    if (lua_callfunction(L, "split", 0, 1))
     {       
         if (lua_toboolean(L, -1))
         {
@@ -270,7 +203,7 @@ void lua_split(lua_State* L)
 
 void lua_isloading(lua_State* L)
 {
-    if (lua_callfunction(L, "IsLoading", 0, 1))
+    if (lua_callfunction(L, "isLoading", 0, 1))
     {
         if (lua_toboolean(L, -1) != prev_is_loading)
         {
@@ -283,12 +216,12 @@ void lua_isloading(lua_State* L)
 
 void lua_onreset(lua_State* L)
 {
-    lua_callfunction(L, "OnReset", 0, 0);
+    lua_callfunction(L, "onReset", 0, 0);
 }
 
 int lua_reset(lua_State* L)
 {
-    if (lua_callfunction(L, "Reset", 0, 1))
+    if (lua_callfunction(L, "reset", 0, 1))
     {
         if (lua_toboolean(L, -1))
         {
@@ -303,12 +236,12 @@ int lua_reset(lua_State* L)
 
 void lua_exit(lua_State* L)
 {
-    lua_callfunction(L, "Exit", 0, 0);
+    lua_callfunction(L, "exit", 0, 0);
 }
 
 void lua_shutdown(lua_State* L)
 {
-    lua_callfunction(L, "Shutdown", 0, 0);
+    lua_callfunction(L, "shutdown", 0, 0);
 }
 
 void run_auto_splitter()
@@ -333,14 +266,15 @@ void run_auto_splitter()
     }
     lua_sandbox(L);
 
-    lua_startup(L);
-    lua_init(L);
-
-    printf("Refresh rate: %d\n", refresh_rate);
-    int rate = 1000000 / refresh_rate;
-
-    char current_file[MAX_PATH_LENGTH];
+    char current_file[256];
     strcpy(current_file, auto_splitter_file);
+
+    if (lua_startup(L, current_file))
+    {
+        lua_init(L);
+    }
+
+    int rate = 1000000 / refresh_rate;
 
     while (1)
     {
@@ -355,8 +289,10 @@ void run_auto_splitter()
         if (!process_exists())
         {
             lua_exit(L);
-            find_process_id(process.name);
-            lua_init(L);
+            if (find_process_id(process.name, current_file))
+            {
+                lua_init(L);
+            }
         }
 
         lua_state(L);
@@ -379,16 +315,4 @@ void run_auto_splitter()
         }
     }
     lua_close(L);
-}
-
-void *last_auto_splitter()
-{
-    while (1)
-    {
-        if (atomic_load(&auto_splitter_enabled) && auto_splitter_file[0] != '\0')
-        {
-            run_auto_splitter();
-        }
-        usleep(10000); // Wait for 10 milliseconds before checking again
-    }
 }

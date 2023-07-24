@@ -68,6 +68,43 @@ struct _LASTAppWindowClass
 
 G_DEFINE_TYPE(LASTAppWindow, last_app_window, GTK_TYPE_APPLICATION_WINDOW);
 
+#define MAX_PATH_LENGTH 256
+
+static void check_directories()
+{
+    // Get the path to the user's directory
+    struct passwd *pw = getpwuid(getuid());
+    const char *user_directory = pw->pw_dir;
+    char last_directory[241];
+    char auto_splitters_directory[MAX_PATH_LENGTH];
+    char themes_directory[MAX_PATH_LENGTH];
+    char splits_directory[MAX_PATH_LENGTH];
+    snprintf(last_directory, MAX_PATH_LENGTH, "%s/.last", user_directory);
+    snprintf(auto_splitters_directory, MAX_PATH_LENGTH, "%s/auto-splitters", last_directory);
+    snprintf(themes_directory, MAX_PATH_LENGTH, "%s/themes", last_directory);
+    snprintf(splits_directory, MAX_PATH_LENGTH, "%s/splits", last_directory);
+
+    // Make the LAST directory if it doesn't exist
+    if (mkdir(last_directory, 0755) == -1) {
+        // Directory already exists or there was an error
+    }
+
+    // Make the autosplitters directory if it doesn't exist
+    if (mkdir(auto_splitters_directory, 0755) == -1) {
+        // Directory already exists or there was an error
+    }
+
+    // Make the themes directory if it doesn't exist
+    if (mkdir(themes_directory, 0755) == -1) {
+        // Directory already exists or there was an error
+    }
+
+    // Make the splits directory if it doesn't exist
+    if (mkdir(splits_directory, 0755) == -1) {
+        // Directory already exists or there was an error
+    }
+}
+
 static Keybind parse_keybind(const gchar *accelerator)
 {
     Keybind kb;
@@ -1164,31 +1201,24 @@ static void last_app_class_init(LASTAppClass *class)
     G_APPLICATION_CLASS(class)->open = last_app_open;
 }
 
-struct ThreadArgs {
-    int argc;
-    char** argv;
-};
-
-void* run_application(void* args) {
-    struct ThreadArgs* threadArgs = (struct ThreadArgs*)args;
-    int argc = threadArgs->argc;
-    char** argv = threadArgs->argv;
-    g_application_run(G_APPLICATION(last_app_new()), argc, argv);
+static void *last_auto_splitter()
+{
+    while (1)
+    {
+        if (atomic_load(&auto_splitter_enabled) && auto_splitter_file[0] != '\0')
+        {
+            run_auto_splitter();
+        }
+        usleep(10000);
+    }
     return NULL;
 }
 
 int main(int argc, char *argv[]) {
     check_directories();
-
-    pthread_t t1, t2;
-    struct ThreadArgs threadArgs;
-    threadArgs.argc = argc;
-    threadArgs.argv = argv;
-    pthread_create(&t1, NULL, &run_application, (void*)&threadArgs);
-    pthread_create(&t2, NULL, &last_auto_splitter, NULL);
-
+    pthread_t t1;
+    pthread_create(&t1, NULL, &last_auto_splitter, NULL);
+    g_application_run(G_APPLICATION(last_app_new()), argc, argv);
     pthread_join(t1, NULL);
-    pthread_join(t2, NULL);
-
     return 0;
 }

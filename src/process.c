@@ -56,7 +56,7 @@ uintptr_t find_base_address()
     }
 }
 
-void stock_process_id(const char* processtarget)
+int stock_process_id(const char* processtarget, const char* current_file)
 {
     char pid_command[128];
     strcpy(pid_command, processtarget);
@@ -65,7 +65,7 @@ void stock_process_id(const char* processtarget)
     char pid_output[128];
     pid_output[0] = '\0';
 
-    while (pid_output[0] == '\0' && atomic_load(&auto_splitter_enabled))
+    while (pid_output[0] == '\0' && atomic_load(&auto_splitter_enabled) && strcmp(current_file, auto_splitter_file) == 0)
     {
         execute_command(pid_command, buffer, pid_output);
         size_t space_pos = strcspn(pid_output, " ");
@@ -84,16 +84,18 @@ void stock_process_id(const char* processtarget)
         printf("PID: %u\n", process.pid);
         process.base_address = find_base_address();
         process.dll_address = process.base_address;
+        return 1;
     }
+    return 0;
 }
 
-void find_process_id(const char* process_name)
+int find_process_id(const char* process_name, const char* current_file)
 {
     process.name = process_name;
     char command[256];
     snprintf(command, sizeof(command), "pgrep \"%.*s\"", (int)strnlen(process.name, 15), process.name);
 
-    stock_process_id(command);
+    return stock_process_id(command, current_file);
 }
 
 int process_exists()

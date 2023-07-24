@@ -10,7 +10,6 @@ extern atomic_bool toggle_loading;
 extern atomic_bool call_reset;
 extern char auto_splitter_file[256];
 
-void check_directories();
-void *last_auto_splitter();
+void run_auto_splitter();
 
 #endif /* __AUTO_SPLITTER_H__ */

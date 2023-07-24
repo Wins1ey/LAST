@@ -16,6 +16,6 @@ typedef struct last_process last_process;
 
 uintptr_t find_base_address();
 int process_exists();
-void find_process_id(const char* process_name);
+int find_process_id(const char* process_name, const char* current_file);
 
 #endif /* __PROCESS_H__ */

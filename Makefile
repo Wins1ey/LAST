@@ -1,8 +1,8 @@
 TARGET := LAST
 
-INC := $(shell pkg-config --cflags gtk+-3.0)
+INC := $(shell pkg-config --cflags gtk+-3.0 luajit)
 CFLAGS := -std=gnu99 -O2 -pthread -Wall
-LDFLAGS := $(shell pkg-config --libs gtk+-3.0 x11 jansson lua5.4)
+LDFLAGS := $(shell pkg-config --libs gtk+-3.0 x11 jansson luajit)
 
 SRC_DIR := ./src
 OBJ_DIR := ./obj
