@@ -55,8 +55,12 @@ $(DEPS_DIR):
 	@mkdir -p $(DEPS_DIR)
 
 last-gtk.h: $(SRC_DIR)/last-gtk.css
-	@echo Creating $@
-	@xxd --include $(SRC_DIR)/last-gtk.css > $(SRC_DIR)/last-gtk.h || (rm $(SRC_DIR)/last-gtk.h; false)
+	@if [ ! -e $(SRC_DIR)/last-gtk.h ]; then \
+		echo "Creating $@"; \
+		xxd --include $(SRC_DIR)/last-gtk.css > $(SRC_DIR)/last-gtk.h; \
+	else \
+		echo "Nothing to be done for $@"; \
+	fi
 
 install:
 	sudo cp $(TARGET) $(BIN_DIR)/$(BIN)
