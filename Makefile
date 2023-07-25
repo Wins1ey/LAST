@@ -6,6 +6,7 @@ LDFLAGS := $(shell pkg-config --libs gtk+-3.0 x11 jansson luajit)
 
 SRC_DIR := ./src
 OBJ_DIR := ./obj
+DEPS_DIR := $(OBJ_DIR)/deps
 ASSETS_DIR := ./assets
 
 # Obtain list of source files and create list of object files
@@ -13,6 +14,7 @@ SOURCES := $(wildcard $(SRC_DIR)/*.c)
 COMPONENTS := $(wildcard $(SRC_DIR)/components/*.c)
 OBJECTS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES)) \
           $(patsubst $(SRC_DIR)/components/%.c, $(OBJ_DIR)/%.o, $(COMPONENTS))
+DEPENDENCIES := $(OBJECTS:$(OBJ_DIR)/%.o=$(DEPS_DIR)/%.d)
 
 BIN := last
 BIN_DIR := /usr/local/bin
@@ -31,22 +33,30 @@ $(TARGET): $(OBJECTS)
 	@gcc $(CFLAGS) $(LDFLAGS) -o $@ $^
 	@echo Done
 
-# Rule to compile C source files to object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
-	@echo Compiling $<
-	@gcc $(INC) $(CFLAGS) -c -o $@ $<
+-include $(DEPENDENCIES)
 
-# Rule to compile C component source files to object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/components/%.c | $(OBJ_DIR)
-	@echo Compiling $<
-	@gcc $(INC) $(CFLAGS) -c -o $@ $<
+# Rule to compile C source files to object files and generate .d files
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR) $(DEPS_DIR)
+	@echo Compiling $(notdir $<)
+	@gcc $(INC) $(CFLAGS) -MMD -MP -c -o $@ $<
+	@mv $(OBJ_DIR)/$*.d $(DEPS_DIR)/$*.d
+
+# Rule to compile C component source files to object files and generate .d files
+$(OBJ_DIR)/%.o: $(SRC_DIR)/components/%.c | $(OBJ_DIR) $(DEPS_DIR)
+	@echo Compiling $(notdir $<)
+	@gcc $(INC) $(CFLAGS) -MMD -MP -c -o $@ $<
+	@mv $(OBJ_DIR)/$*.d $(DEPS_DIR)/$*.d
 
 # Rule to create the object directory
 $(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
+	@mkdir -p $(OBJ_DIR)
+
+$(DEPS_DIR):
+	@mkdir -p $(DEPS_DIR)
 
 last-gtk.h: $(SRC_DIR)/last-gtk.css
-	xxd --include $(SRC_DIR)/last-gtk.css > $(SRC_DIR)/last-gtk.h || (rm $(SRC_DIR)/last-gtk.h; false)
+	@echo Creating $@
+	@xxd --include $(SRC_DIR)/last-gtk.css > $(SRC_DIR)/last-gtk.h || (rm $(SRC_DIR)/last-gtk.h; false)
 
 install:
 	sudo cp $(TARGET) $(BIN_DIR)/$(BIN)
@@ -70,8 +80,9 @@ remove-schema:
 	sudo rm $(SCHEMAS_DIR)/$(SCHEMA)
 	sudo glib-compile-schemas $(SCHEMAS_DIR)
 
-# Clean target to remove object files and LAS executable
+# Clean target to remove object files and LAST executable
 clean:
-	rm -rf $(TARGET) $(OBJ_DIR) $(SRC_DIR)/last-gtk.h
+	@rm -rf $(TARGET) $(OBJ_DIR) $(SRC_DIR)/last-gtk.h
+	@echo Removed binaries
 
 .PHONY: build last-gtk.h install uninstall remove-schema clean
