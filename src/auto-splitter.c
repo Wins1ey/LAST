@@ -109,7 +109,11 @@ int lua_callfunction(lua_State* L, const char* func_name, int num_args, int num_
         }
         return 1;
     }
-    return 0;
+    else
+    {
+        lua_pop(L, 1);
+        return 0;
+    }
 }
 
 int lua_startup(lua_State* L, char* current_file)
@@ -129,6 +133,7 @@ int lua_startup(lua_State* L, char* current_file)
             const char* process_name = lua_tostring(L, -1);
             if (process_name != NULL)
             {
+                lua_pop(L, 1);
                 return find_process_id(process_name, current_file);
             }
         }
@@ -158,7 +163,11 @@ int lua_update(lua_State* L)
     {
         if (lua_isboolean(L, -1))
         {
-            return lua_toboolean(L, -1);
+            if (!lua_toboolean(L, -1))
+            {
+                lua_pop(L, 1);
+                return 0;
+            }
         }
         lua_pop(L, 1);
     }
@@ -226,10 +235,14 @@ int lua_reset(lua_State* L)
         if (lua_toboolean(L, -1))
         {
             atomic_store(&call_reset, true);
+            lua_pop(L, 1);
             lua_onreset(L);
             return 1;
         }
-        lua_pop(L, 1);
+        else
+        {
+            lua_pop(L, 1);
+        }
     }
     return 0;
 }
