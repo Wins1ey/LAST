@@ -1,7 +1,7 @@
 TARGET := LAST
 
 INC := -I/usr/include/lua5.* `pkg-config --cflags gtk+-3.0 x11 jansson`
-CFLAGS := -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter
+CFLAGS := -std=gnu99 -O0 -pthread -Wall -Wno-unused-parameter
 LDFLAGS := -llua `pkg-config --libs gtk+-3.0 x11 jansson`
 
 SRC_DIR := ./src
@@ -27,7 +27,7 @@ build: last-gtk.h $(TARGET)
 
 # Rule to link object files to create executable
 $(TARGET): $(OBJECTS)
-	gcc $(CFLAGS) $(LDFLAGS) -o $@ $^
+	gcc $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 # Rule to compile C source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
