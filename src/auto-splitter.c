@@ -85,6 +85,24 @@ void check_directories()
     }
 }
 
+static const luaL_Reg lj_lib_load[] = {
+  { "",            luaopen_base },
+  { LUA_STRLIBNAME,    luaopen_string },
+  { LUA_MATHLIBNAME,    luaopen_math },
+  { LUA_JITLIBNAME,    luaopen_jit },
+  { NULL,        NULL }
+};
+
+LUALIB_API void luaL_openlibs(lua_State *L)
+{
+  const luaL_Reg *lib;
+  for (lib = lj_lib_load; lib->func; lib++) {
+    lua_pushcfunction(L, lib->func);
+    lua_pushstring(L, lib->name);
+    lua_call(L, 1, 0);
+  }
+}
+
 void startup(lua_State* L)
 {
     lua_getglobal(L, "startup");
