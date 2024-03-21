@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include <lua.h>
+#include <luajit.h>
 
 #include "process.h"
 #include "auto-splitter.h"

@@ -8,9 +8,9 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include <lua.h>
-#include <lauxlib.h>
+#include <luajit.h>
 #include <lualib.h>
+#include <lauxlib.h>
 
 #include "memory.h"
 #include "auto-splitter.h"

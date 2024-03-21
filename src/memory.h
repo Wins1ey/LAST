@@ -1,7 +1,7 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 
-#include <lua.h>
+#include <luajit.h>
 #include <sys/uio.h>
 #include <stdlib.h>
 

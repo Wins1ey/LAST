@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/uio.h>
 
-#include <lua.h>
+#include <luajit.h>
 
 #include "memory.h"
 #include "process.h"

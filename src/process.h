@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <lua.h>
+#include <luajit.h>
 
 struct last_process
 {
