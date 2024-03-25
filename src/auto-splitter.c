@@ -26,6 +26,24 @@ atomic_bool toggle_loading = false;
 atomic_bool call_reset = false;
 bool prev_is_loading;
 
+static const char* functions[] = {
+    "collectgarbage",
+    "dofile",
+    "getmetatable",
+    "setmetatable",
+    "getfenv",
+    "setfenv",
+    "load",
+    "loadfile",
+    "loadstring",
+    "rawequal",
+    "rawget",
+    "rawset",
+    "module",
+    "require",
+    "newproxy",
+};
+
 extern last_process process;
 
 // I have no idea how this works
@@ -103,6 +121,15 @@ LUALIB_API void luaL_openlibs(lua_State *L)
   }
 }
 
+void disable_functions(lua_State* L, const char** functions)
+{
+    for (int i = 0; functions[i] != NULL; i++)
+    {
+        lua_pushnil(L);
+        lua_setglobal(L, functions[i]);
+    }
+}
+
 void startup(lua_State* L)
 {
     lua_getglobal(L, "startup");
@@ -177,6 +204,7 @@ void run_auto_splitter()
 {
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
+    disable_functions(L, functions);
     lua_pushcfunction(L, find_process_id);
     lua_setglobal(L, "process");
     lua_pushcfunction(L, read_address);
