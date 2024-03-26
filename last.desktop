@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=LAST
-Exec=/usr/local/bin/last
+Exec=/usr/local/bin/LAST
 Icon=last
 Type=Application
 Categories=GTK;GNOME;Utility;

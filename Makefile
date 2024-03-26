@@ -1,4 +1,4 @@
-BIN := last
+BIN := LAST
 
 INC := `pkg-config --cflags gtk+-3.0 x11 jansson lua`
 CFLAGS := -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter
@@ -15,7 +15,6 @@ OBJECTS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SOURCES)) \
 
 DESTDIR :=
 PREFIX := /usr/local
-BIN := last
 APP := last.desktop
 ICON := last
 SCHEMA := last.gschema.xml
