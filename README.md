@@ -28,9 +28,14 @@ And to install:
 ## Installation
 
 ```bash
-git clone https://github.com/Wins1ey/LAST
+git clone https://github.com/wins1ey/LAST
 cd LAST
-sudo make build install
+make
+sudo make install
+```
+or
+```bash
+git clone https://github.com/wins1ey/LAST && cd LAST && make && sudo make install
 ```
 
 ## Getting Started

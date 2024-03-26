@@ -22,7 +22,7 @@ ICON_DIR := /usr/share/icons/hicolor
 SCHEMA := last.gschema.xml
 SCHEMAS_DIR := /usr/share/glib-2.0/schemas
 
-build: last-gtk.h $(TARGET)
+all: last-gtk.h $(TARGET)
 
 # Rule to link object files to create executable
 $(TARGET): $(OBJECTS)
@@ -43,7 +43,7 @@ $(OBJ_DIR):
 last-gtk.h: $(SRC_DIR)/last-gtk.css
 	xxd --include $(SRC_DIR)/last-gtk.css > $(SRC_DIR)/last-gtk.h || (rm $(SRC_DIR)/last-gtk.h; false)
 
-install:
+install: all
 	install -Dm755 $(TARGET) $(BIN_DIR)/$(BIN)
 	install -Dm644 $(APP) $(APP_DIR)/$(APP)
 	for size in 16 22 24 32 36 48 64 72 96 128 256 512; do \
@@ -70,4 +70,4 @@ remove-schema:
 clean:
 	rm -rf $(TARGET) $(OBJ_DIR) $(SRC_DIR)/last-gtk.h
 
-.PHONY: build last-gtk.h install uninstall remove-schema clean
+.PHONY: all last-gtk.h install uninstall remove-schema clean
