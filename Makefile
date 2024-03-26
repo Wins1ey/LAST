@@ -44,21 +44,22 @@ last-gtk.h: $(SRC_DIR)/last-gtk.css
 	xxd --include $(SRC_DIR)/last-gtk.css > $(SRC_DIR)/last-gtk.h || (rm $(SRC_DIR)/last-gtk.h; false)
 
 install:
-	cp $(TARGET) $(BIN_DIR)/$(BIN)
-	cp $(APP) $(APP_DIR)
+	install -Dm755 $(TARGET) $(BIN_DIR)/$(BIN)
+	install -Dm644 $(APP) $(APP_DIR)/$(APP)
 	for size in 16 22 24 32 36 48 64 72 96 128 256 512; do \
-	  convert $(ICON).svg -resize "$$size"x"$$size" \
-	          $(ICON_DIR)/"$$size"x"$$size"/apps/$(ICON).png ; \
+		mkdir -p $(ICON_DIR)/"$$size"x"$$size"/apps ; \
+		convert $(ICON).svg -resize "$$size"x"$$size" \
+	    	$(ICON_DIR)/"$$size"x"$$size"/apps/$(ICON).png ; \
 	done
 	gtk-update-icon-cache -f -t $(ICON_DIR)
-	cp $(SRC_DIR)/$(SCHEMA) $(SCHEMAS_DIR)
+	install -Dm644 $(SRC_DIR)/$(SCHEMA) $(SCHEMAS_DIR)/$(SCHEMA)
 	glib-compile-schemas $(SCHEMAS_DIR)
 
 uninstall:
 	rm -f $(BIN_DIR)/$(BIN)
 	rm -f $(APP_DIR)/$(APP)
 	for size in 16 22 24 32 36 48 64 72 96 128 256 512; do \
-	  rm -f $(ICON_DIR)/"$$size"x"$$size"/apps/$(ICON).png ; \
+		rm -f $(ICON_DIR)/"$$size"x"$$size"/apps/$(ICON).png ; \
 	done
 
 remove-schema:
