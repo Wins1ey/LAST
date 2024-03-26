@@ -21,10 +21,6 @@ LAST requires the following dependencies on your system to compile:
 - `libjansson`
 - `lua`
 
-And to install:
-
-- `imagemagick`
-
 ## Installation
 
 ```bash

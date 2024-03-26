@@ -46,9 +46,8 @@ install: all
 	install -Dm644 $(APP) $(DESTDIR)$(PREFIX)/share/applications/$(APP)
 	for size in 16 22 24 32 36 48 64 72 96 128 256 512; do \
 		mkdir -p $(DESTDIR)$(PREFIX)/share/icons/hicolor/"$$size"x"$$size"/apps ; \
-		convert $(ICON).svg -background Transparent -resize "$$size"x"$$size" \
-		$(DESTDIR)$(PREFIX)/share/icons/hicolor/"$$size"x"$$size"/apps/$(ICON).png ; \
-    done
+		rsvg-convert -w "$$size" -h "$$size" -f png -o $(DESTDIR)$(PREFIX)/share/icons/hicolor/"$$size"x"$$size"/apps/$(ICON).png $(ICON).svg ; \
+	done
 	gtk-update-icon-cache -f -t $(DESTDIR)$(PREFIX)/share/icons/hicolor
 	install -Dm644 $(SRC_DIR)/$(SCHEMA) $(DESTDIR)$(PREFIX)/share/glib-2.0/schemas/$(SCHEMA)
 	glib-compile-schemas $(DESTDIR)$(PREFIX)/share/glib-2.0/schemas
