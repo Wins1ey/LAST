@@ -19,7 +19,7 @@ LAST requires the following dependencies on your system to compile:
 - `libgtk+-3.0`
 - `x11`
 - `libjansson`
-- `lua`
+- `luajit`
 
 And to install:
 

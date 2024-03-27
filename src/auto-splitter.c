@@ -8,9 +8,9 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include <lua.h>
-#include <lauxlib.h>
+#include <luajit.h>
 #include <lualib.h>
+#include <lauxlib.h>
 
 #include "memory.h"
 #include "auto-splitter.h"
@@ -25,6 +25,24 @@ atomic_bool call_split = false;
 atomic_bool toggle_loading = false;
 atomic_bool call_reset = false;
 bool prev_is_loading;
+
+static const char* functions[] = {
+    "collectgarbage",
+    "dofile",
+    "getmetatable",
+    "setmetatable",
+    "getfenv",
+    "setfenv",
+    "load",
+    "loadfile",
+    "loadstring",
+    "rawequal",
+    "rawget",
+    "rawset",
+    "module",
+    "require",
+    "newproxy",
+};
 
 extern last_process process;
 
@@ -82,6 +100,34 @@ void check_directories()
     // Make the splits directory if it doesn't exist
     if (mkdir(splits_directory, 0755) == -1) {
         // Directory already exists or there was an error
+    }
+}
+
+static const luaL_Reg lj_lib_load[] = {
+  { "",            luaopen_base },
+  { LUA_STRLIBNAME,    luaopen_string },
+  { LUA_MATHLIBNAME,    luaopen_math },
+  { LUA_BITLIBNAME,    luaopen_bit },
+  { LUA_JITLIBNAME,    luaopen_jit },
+  { NULL,        NULL }
+};
+
+LUALIB_API void luaL_openlibs(lua_State *L)
+{
+  const luaL_Reg *lib;
+  for (lib = lj_lib_load; lib->func; lib++) {
+    lua_pushcfunction(L, lib->func);
+    lua_pushstring(L, lib->name);
+    lua_call(L, 1, 0);
+  }
+}
+
+void disable_functions(lua_State* L, const char** functions)
+{
+    for (int i = 0; functions[i] != NULL; i++)
+    {
+        lua_pushnil(L);
+        lua_setglobal(L, functions[i]);
     }
 }
 
@@ -159,6 +205,7 @@ void run_auto_splitter()
 {
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
+    disable_functions(L, functions);
     lua_pushcfunction(L, find_process_id);
     lua_setglobal(L, "process");
     lua_pushcfunction(L, read_address);

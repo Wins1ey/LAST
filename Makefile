@@ -1,8 +1,8 @@
 TARGET := LAST
 
-INC := `pkg-config --cflags gtk+-3.0 x11 jansson lua`
+INC := `pkg-config --cflags gtk+-3.0 x11 jansson luajit`
 CFLAGS := -std=gnu99 -O2 -pthread -Wall -Wno-unused-parameter
-LDFLAGS := `pkg-config --libs gtk+-3.0 x11 jansson lua`
+LDFLAGS := `pkg-config --libs gtk+-3.0 x11 jansson luajit`
 
 SRC_DIR := ./src
 OBJ_DIR := ./obj
