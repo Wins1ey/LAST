@@ -85,6 +85,110 @@ void check_directories()
     }
 }
 
+/*
+    Generic function to call lua functions
+    Signatures are something like `disb>s`
+    1. d = double
+    2. i = int
+    3. s = string
+    4. b = boolean
+    5. > = return separator
+
+    Example: `call_va("functionName", "dd>d", x, y, &z);`
+*/
+bool call_va(lua_State* L, const char *func, const char *sig, ...) {
+    va_list vl;
+    int narg, nres;  /* number of arguments and results */
+    
+    va_start(vl, sig);
+    lua_getglobal(L, func);  /* get function */
+    
+    /* push arguments */
+    narg = 0;
+    while (*sig) {  /* push arguments */
+        switch (*sig++) {
+            case 'd':  /* double argument */
+                lua_pushnumber(L, va_arg(vl, double));
+                break;
+    
+            case 'i':  /* int argument */
+                lua_pushnumber(L, va_arg(vl, int));
+                break;
+    
+            case 's':  /* string argument */
+                lua_pushstring(L, va_arg(vl, char *));
+                break;
+
+            case 'b':
+                lua_pushboolean(L, va_arg(vl, int));
+                break;
+    
+            case '>':
+                break;
+    
+            default:
+                printf("invalid option (%c)\n", *(sig - 1));
+                return false;
+        }
+        if(*(sig - 1) == '>') break;
+        narg++;
+        luaL_checkstack(L, 1, "too many arguments");
+    }
+    
+    /* do the call */
+    nres = strlen(sig);  /* number of expected results */
+    if (lua_pcall(L, narg, nres, 0) != LUA_OK) {
+        const char* err = lua_tostring(L, -1);
+        printf("error running function '%s': %s\n", func, err);
+        return false;
+    }
+    
+    /* retrieve results */
+    nres = -nres;  /* stack index of first result */
+    while (*sig) {  /* get results */
+        switch (*sig++) {
+            case 'd':  /* double result */
+                if (!lua_isnumber(L, nres)) {
+                    printf("function '%s' wrong result type, expected double\n", func);
+                    return false;
+                }
+                *va_arg(vl, double *) = lua_tonumber(L, nres);
+                break;
+    
+            case 'i':  /* int result */
+                if (!lua_isnumber(L, nres)) {
+                    printf("function '%s' wrong result type, expected int\n", func);
+                    return false;
+                }
+                *va_arg(vl, int *) = (int)lua_tonumber(L, nres);
+                break;
+    
+            case 's':  /* string result */
+                if (!lua_isstring(L, nres)) {
+                    printf("function '%s' wrong result type, expected string\n", func);
+                    return false;
+                }
+                *va_arg(vl, const char **) = lua_tostring(L, nres);
+                break;
+
+            case 'b':
+                if (!lua_isboolean(L, nres)){
+                     printf("function '%s' wrong result type, expected boolean\n", func);
+                    return false;
+                }
+                *va_arg(vl, bool *) = lua_toboolean(L, nres);
+                break;
+
+            default:
+                printf("invalid option (%c)\n", *(sig - 1));
+                return false;
+        }
+        nres++;
+    }
+    va_end(vl);
+    return true;
+}
+
 void startup(lua_State* L)
 {
     lua_getglobal(L, "startup");
@@ -100,57 +204,51 @@ void startup(lua_State* L)
 
 void state(lua_State* L)
 {
-    lua_getglobal(L, "state");
-    lua_pcall(L, 0, 0, 0);
+    call_va(L,"state", "");
 }
 
 void update(lua_State* L)
 {
-    lua_getglobal(L, "update");
-    lua_pcall(L, 0, 0, 0);
+    call_va(L,"update", "");
 }
 
 void start(lua_State* L)
 {
-    lua_getglobal(L, "start");
-    lua_pcall(L, 0, 1, 0);
-    if (lua_toboolean(L, -1))
-    {
-        atomic_store(&call_start, true);
+    bool ret;
+    if(call_va(L, "start", ">b", &ret)){
+        atomic_store(&call_start, ret);
     }
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
 void split(lua_State* L)
 {
-    lua_getglobal(L, "split");
-    lua_pcall(L, 0, 1, 0);
-    if (lua_toboolean(L, -1))
-    {
-        atomic_store(&call_split, true);
+    bool ret;
+    if (call_va(L,"split", ">b", &ret)) {
+        atomic_store(&call_split, ret);
     }
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
 void is_loading(lua_State* L)
 {
-    lua_getglobal(L, "isLoading");
-    lua_pcall(L, 0, 1, 0);
-    if (lua_toboolean(L, -1) != prev_is_loading)
-    {
-        atomic_store(&toggle_loading, true);
-        prev_is_loading = !prev_is_loading;
+    bool loading;
+    if(call_va(L,"isLoading", ">b", &loading)){
+        if (loading != prev_is_loading)
+        {
+            atomic_store(&toggle_loading, true);
+            prev_is_loading = !prev_is_loading;
+        }
     }
     lua_pop(L, 1); // Remove the return value from the stack
 }
 
 void reset(lua_State* L)
 {
-    lua_getglobal(L, "reset");
-    lua_pcall(L, 0, 1, 0);
-    if (lua_toboolean(L, -1))
-    {
-        atomic_store(&call_reset, true);
+    bool shouldReset;
+    if(call_va(L,"reset",">b",&shouldReset)){
+        if(shouldReset)
+            atomic_store(&call_reset, true);
     }
     lua_pop(L, 1); // Remove the return value from the stack
 }
