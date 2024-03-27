@@ -19,6 +19,14 @@ APP := last.desktop
 ICON := last
 SCHEMA := last.gschema.xml
 
+ifdef DESTDIR
+	update_icon_cache :=
+	compile_schemas :=
+else
+	update_icon_cache := gtk-update-icon-cache -f -t $(PREFIX)/share/icons/hicolor
+	compile_schemas := glib-compile-schemas $(PREFIX)/share/glib-2.0/schemas
+endif
+
 all: last-gtk.h $(BIN)
 
 # Rule to link object files to create executable
@@ -47,9 +55,9 @@ install: all
 		mkdir -p $(DESTDIR)$(PREFIX)/share/icons/hicolor/"$$size"x"$$size"/apps ; \
 		rsvg-convert -w "$$size" -h "$$size" -f png -o $(DESTDIR)$(PREFIX)/share/icons/hicolor/"$$size"x"$$size"/apps/$(ICON).png $(ICON).svg ; \
 	done
-	gtk-update-icon-cache -f -t $(DESTDIR)$(PREFIX)/share/icons/hicolor
+	$(update_icon_cache)
 	install -Dm644 $(SRC_DIR)/$(SCHEMA) $(DESTDIR)$(PREFIX)/share/glib-2.0/schemas/$(SCHEMA)
-	glib-compile-schemas $(DESTDIR)$(PREFIX)/share/glib-2.0/schemas
+	$(compile_schemas)
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/$(BIN)
 	rm -f $(DESTDIR)$(PREFIX)/share/applications/$(APP)
@@ -59,7 +67,7 @@ uninstall:
 
 remove-schema:
 	rm $(DESTDIR)$(PREFIX)/share/glib-2.0/schemas/$(SCHEMA)
-	glib-compile-schemas $(DESTDIR)$(PREFIX)/share/glib-2.0/schemas
+	$(compile_schemas)
 
 # Clean target to remove object files and LAS executable
 clean:
